@@ -381,3 +381,225 @@
   - **ミドルウェアスタックシステム (wI2)**
     - スタック構築：`constructStack`関数でミドルウェアチェーン構築
     - エイリアシング：名前とエイリアス管理機能
+
+- [x] 347-356行解析済み (ライセンス情報)
+  **処理内容詳細:**
+  - **Microsoft Corporationライセンス条項**
+    - ISCライセンス準拠：無償利用・コピー・変更・配布許可
+    - 免責条項：AS ISで提供、商品性・特定目的適合性の暗黙保証否認
+    - 損害賠償責任制限：特別・直接・間接・結果的損害の免責
+    - 使用・データ・利益損失免責：契約・過失・不法行為問わず
+
+- [x] 337-346行解析済み (src/aws-signature-v4.js, src/uri-utils.js, src/hex-utils.js)
+  **処理内容詳細:**
+  - **AWS署名バージョン4実装 (SignatureV4クラス)**
+    - `createStringToSign`メソッド：SHA256ハッシュを使用して署名文字列生成
+      - `AWS4-HMAC-SHA256`形式でタイムスタンプ・スコープ・ハッシュ化リクエスト含む
+    - `getCanonicalPath`メソッド：URLパス正規化処理
+      - `.`・`..`セグメント処理、パスのノーマライズ
+      - URIエスケープ処理（`%2F`を`/`に変換）
+      - `uriEscapePath`オプションによる条件制御
+    - `getSignature`メソッド：HMAC-SHA256を使用した署名生成
+      - 署名文字列を作成し、署名キーでHMAC計算
+    - `getSigningKey`メソッド：多段階キー導出
+      - `AWS4` + 秘密アクセスキーから開始
+      - 日付→リージョン→サービス→`aws4_request`の順でHMACチェーン
+    - `validateResolvedCredentials`メソッド：認証情報検証
+      - `accessKeyId`・`secretAccessKey`の型・存在チェック
+  - **ユーティリティ関数**
+    - `formatDate`関数：ISO 8601形式の日付をAWS署名用に変換
+      - ハイフン・コロンを除去した`longDate`と`shortDate`返却
+    - `getCanonicalHeaderList`関数：ヘッダーキーをソートしセミコロン結合
+
+- [x] 327-336行解析済み (src/license-info.js, src/tslib-module.js)
+  **処理内容詳細:**
+  - **Microsoftライセンステキスト完全版**
+    - ISCライセンスの使用条件文
+    - 使用・コピー・変更・配布の許可
+    - 保証免責・賠償責任制限の明記
+    - 契約・不法行為に関わらず損害免責
+  - **TypeScript tslibモジュール初期化**
+    - UMDパターンによるモジュールエクスポート
+    - AMD/CommonJS/グローバル対応
+    - `global`/`self`/`this`によるルートオブジェクト検出
+    - `define`関数によるAMD判定
+    - `__esModule`プロパティ設定
+  - **TypeScriptヘルパー関数群開始**
+    - `Object.setPrototypeOf`ポリフィル
+    - `__proto__`を使用したプロトタイプ設定
+    - `hasOwnProperty`によるプロパティコピー
+
+- [x] 317-326行解析済み (src/prometheus-serializer.js, src/prometheus-exporter.js, src/time-utils.js)
+  **処理内容詳細:**
+  - **Prometheusメトリクスシリアライザー (PrometheusSerializer)**
+    - `_serializeSingularDataPoint`：単一データポイントのシリアライズ
+    - `_serializeHistogramDataPoint`：ヒストグラムデータのシリアライズ
+      - count/sumメトリクスの出力
+      - バケット境界処理（`+Inf`含む）
+      - 累積カウント計算
+    - `_serializeResource`：target_infoメタデータ出力
+    - メトリクス名サニタイズ（`sanitizePrometheusMetricName`）
+    - 属性値エスケープ処理
+  - **Prometheusエクスポーター (PrometheusExporter)**
+    - HTTPサーバー実装（デフォルトポート9464）
+    - `/metrics`エンドポイントでのメトリクス提供
+    - 環境変数サポート：`OTEL_EXPORTER_PROMETHEUS_HOST/PORT`
+    - メトリックリーダー継承と集約設定
+  - **TypeScriptヘルパー関数拡張**
+    - `__extends`：クラス継承ヘルパー
+    - `__assign`：オブジェクトスプレッドヘルパー
+    - `__rest`：オブジェクト分割代入ヘルパー
+    - `__decorate`：デコレーターヘルパー
+
+- [x] 307-316行解析済み (src/http2-subchannel-call.js, src/status.js, src/metadata.js)
+  **処理内容詳細:**
+  - **HTTP/2サブチャネルコール (Http2SubchannelCall)**
+    - HTTP/2ストリーム管理とイベントハンドリング
+    - `response`イベント：サーバーヘッダー受信、HTTPステータスコード処理
+    - `trailers`イベント：gRPCステータス、メタデータ受信
+    - `data`イベント：メッセージデコード、バックプレッシャー制御
+    - `end`/`close`イベント：ストリーム終了処理
+    - RST_STREAMコード変換：NGHTTP2エラーコードからgRPCステータスへ
+      - NGHTTP2_NO_ERROR、NGHTTP2_REFUSED_STREAM、NGHTTP2_CANCEL等
+    - HTTPステータスコードマッピング：400番台・500番台エラー変換
+  - **コールナンバー管理**
+    - `getNextCallNumber`関数：グローバルカウンターで一意のID生成
+  - **gRPCステータスコード定義**
+    - OK・CANCELLED・UNKNOWN等0-16までの標準ステータスコード
+    - デフォルト最大メッセージサイズ設定（4MB）
+  - **メタデータ管理 (Metadataクラス)**
+    - HTTP/2ヘッダーとの相互変換
+    - バイナリヘッダー（-bin）のbase64エンコーディング
+    - キー正規化（小文字化）、クローン・マージ機能
+
+- [x] 297-306行解析済み (src/file-loader.js, src/path-resolver.js, src/protobuf-types.js)
+  **処理内容詳細:**
+  - **ファイルローダー (load関数)**
+    - Node.js/ブラウザ両対応のファイル読み込み
+    - `fs.readFile`優先、フォールバックでXMLHttpRequest使用
+    - バイナリ/テキストモード対応
+    - 非同期/Promise対応（`promisify`使用）
+    - XHRオーバーライドMIMEタイプ設定
+  - **パス処理ユーティリティ (pathUtils)**
+    - `isAbsolute`：絶対パス判定（`/^?:\/|\w+:?/`）
+    - `normalize`：パス正規化、`.`/`..`セグメント処理
+      - 連続スラッシュ統合、バックスラッシュ変換
+      - 相対パスの`..`解決、絶対パスの不正セグメント除去
+    - `resolve`：相対パス解決、ベースパスとターゲットの結合
+  - **Protobufタイプ定義**
+    - 基本タイプ15種：double〜float〜int32〜...bytes
+    - ワイヤータイプマッピング（`basic`）
+    - デフォルト値定義（`defaults`）：数値を0、文字列空、ブールファルス
+    - 長整数64ビットタイプ判定（`long`）
+    - マップキータイプ定義（`mapKey`）
+    - パックエンコーディング対応タイプ（`packed`）
+
+- [x] 287-296行解析済み (src/otlp-metrics-exporter.js, src/float-utils.js, src/base64-utils.js)
+  **処理内容詳細:**
+  - **OTLPメトリクスエクスポーター (OTLPMetricExporterBase)**
+    - 集約時間性選択機能：CUMULATIVE/DELTA/LOWMEMORY対応
+      - CUMULATIVE：全体の累積値
+      - DELTA：増分値のみ
+      - LOWMEMORY：メモリ効率を重視したハイブリッド
+    - 環境変数サポート：`OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE`
+    - 集約選択機能：デフォルト集約方式選択（SUM/LAST_VALUE/HISTOGRAM）
+    - Instrumentタイプ別集約戦略切り替え
+  - **メトリクスストレージレジストリ (MetricStorageRegistry)**
+    - メトリクスストレージの互換性チェック
+    - 名前・タイプ・単位・説明の一致性検証
+    - 不一致メトリクスの競合状態エラーハンドリング
+    - コレクター別ストレージ管理
+  - **Observable結果実装 (ObservableResultImpl)**
+    - 数値型検証：non-number値の警告出力
+    - INT型の浮動小数点切り捨て処理
+    - 属性バッファリング（JSONキー化）
+  - **32ビット浮動小数点数処理 (Float32)ユーティリティ**
+    - Float32Arrayベースの高速実装
+    - リトルエンディアン/ビッグエンディアン対応
+    - フォールバック実装：IEEE 754手動実装
+      - 符号・指数・仮数部ビット操作
+      - 特殊値処理（NaN、Infinity、非正規化数）
+    - エンディアン変換関数（LE/BE）
+  - **EventEmitterクラス**
+    - `on`/`off`/`emit`メソッド実装
+    - コンテキスト付きリスナー登録
+    - イベント名別リスナー管理、引数伝播
+  - **Base64エンコーディングユーティリティ**
+    - RFC 4648準拠のBase64エンコード/デコード
+    - 長さ計算関数：パディング考慮
+    - ストリーミング処理：大量データの分割処理
+    - 状態マシンベースの3バイトユニット処理
+    - パディング検証、不正文字検出エラー処理
+
+- [x] 277-286行解析済み (src/undici-headers.js, src/undici-response.js, src/undici-request.js, src/weak-ref-compatibility.js)
+  **処理内容詳細:**
+  - **UndiciライブラリHeaders管理システム**
+    - HeadersList（$Z1）クラス：HTTPヘッダー管理エンジン
+      - `cookies`配列：Set-Cookieヘッダー専用管理
+      - `contains`メソッド：大文字小文字を区別しない検索
+      - `append`メソッド：ヘッダー追加、セミコロンまたはカンマ区切り
+      - `set`/`delete`/`get`メソッド：基本CRUD操作
+      - `toSortedArray`メソッド：パフォーマンス最適化ソート（32要素以下特別処理）
+    - Headers（QZ）Webクラス：Web標準準拠実装
+      - WebIDL準拠のブランドチェック・引数長チェック
+      - `append`/`delete`/`get`/`has`/`set`メソッド
+      - `getSetCookie`メソッド：Set-Cookie配列取得
+      - ヘッダー名・値の検証（`isValidHeaderName`/`isValidHeaderValue`）
+      - イミュータブルガード："immutable"状態での変更防止
+  - **UndiciライブラリResponse実装**
+    - Response（DZ）クラス：Web標準Fetch API準拠
+      - 静的メソッド：`error()`/`json()`/`redirect()`
+      - プロパティ：`type`/`url`/`redirected`/`status`/`ok`/`statusText`/`headers`/`body`/`bodyUsed`
+      - `clone()`メソッド：深いコピー・ストリーム複製
+      - 内部レスポンス構造：`hh()`関数でデフォルト値設定
+      - フィルタレスポンス：`aK0()`で"basic"/"cors"/"opaque"/"opaqueredirect"タイプ変換
+      - ネットワークエラー処理：`RZ1()`でエラーレスポンス生成
+  - **UndiciライブラリRequest実装**
+    - Request（$3）クラス：Web標準Fetch API準拠
+      - コンストラクター：URL文字列またはRequestオブジェクト受け取り
+      - プロパティ：`method`/`url`/`headers`/`destination`/`referrer`/`referrerPolicy`/`mode`/`credentials`/`cache`/`redirect`/`integrity`/`keepalive`
+      - AbortSignal統合：中断制御、WeakRef・FinalizationRegistry使用
+      - リクエスト作成：`yZ1()`でデフォルトリクエスト構造生成
+      - `clone()`メソッド：リクエスト複製・ストリーム分岐
+      - Body混合：ストリーム・バイナリデータ処理
+  - **弱参照互換性ライブラリ（BE0）**
+    - Node.js v18 V8カバレッジ環境対応
+    - `tK0`互換WeakRefクラス：接続・サイズベース無効化
+    - `eK0`互換FinalizationRegistryクラス：disconnectイベント監視
+    - プロセス環境変数・バージョン検出による自動切り替え
+
+- [x] 267-276行解析済み (src/http-request-sender.js, src/http2-client.js, src/undici-pool-base.js, src/proxy-agent.js)
+  **処理内容詳細:**
+  - **HTTPリクエスト送信エンジン（Request Sender）**
+    - `end()`メソッド：リクエスト終了処理・ヘッダー送信完了
+      - `bytesWritten`検証：Content-Length不一致警告・エラー処理
+      - Chunked Transfer Encoding：`0\r\n\r\n`終了マーカー送信
+      - Keep-Aliveタイムアウト：`refresh()`でタイムアウト更新
+      - クライアント再開：`client[kResume]()`でパイプライン継続
+    - `destroy()`メソッド：リクエスト中断・クリーンアップ処理
+      - パイプライン検証：`pipeline should only contain this request`
+      - アボート処理：`abort(error)`で中断信号送信
+  - **HTTP/2クライアント実装（実験的機能）**
+    - `HTTP2Session`管理：`oG1.connect()`でHTTP/2接続確立
+      - 警告出力：`H2 support is experimental, expect them to change at any time.`
+      - ピア並行ストリーム制限：`peerMaxConcurrentStreams`設定
+      - フレームエラー処理：`frameError`/`goaway`イベント監視
+    - ヘッダー変換：HTTPヘッダーからHTTP/2疑似ヘッダーへ変換
+      - `:authority`/`:method`/`:path`/`:scheme`/`:content-length`設定
+      - `Rn9()`関数：ヘッダー配列をBufferペア配列に変換
+    - ストリーム管理：`request()`/`end()`/`write()`でストリーム制御
+      - アップグレード対応：CONNECTメソッドでHTTP/2トンネリング
+      - 継続処理：`100-continue`レスポンス待機機能
+  - **プール・バランサー基底クラス（PoolBase）**
+    - 接続プール管理：`kClients`配列で複数クライアント管理
+      - ドレイン処理：`onDrain`で負荷分散・フロー制御
+      - 統計情報：`connected`/`free`/`pending`/`running`/`size`プロパティ
+    - キュー管理：`FixedQueue`クラスで効率的なFIFOキュー実装
+      - リングバッファ：2048要素のcircular buffer
+      - リンクリスト：複数セグメントで無制限キュー拡張
+  - **プロキシエージェント（ProxyAgent）**
+    - プロキシURI解析：`URL`クラスでプロキシサーバー情報抽出
+      - 認証サポート：Basic認証・Token認証・User:Pass認証
+      - `proxy-authorization`ヘッダー：Base64エンコード認証情報
+    - TLS設定：`requestTls`（対象サーバー用）・`proxyTls`（プロキシサーバー用）分離
+    - 接続ファクトリー：`clientFactory`でカスタムクライアント作成機能

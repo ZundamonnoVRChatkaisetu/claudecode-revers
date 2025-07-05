@@ -208,37 +208,16 @@
 - [x] 367-376行解析済み (src/date-time-processor.js, src/bedrock-runtime-core.js)
 - [x] 357-366行解析済み (src/typescript-utilities.js, src/data-processing-core.js)
 - [x] 347-356行解析済み (ライセンス情報)
-- [ ] 337-346行解析中
-- [ ] 327-336行解析中
-- [ ] 317-326行解析中
-- [ ] 307-316行解析中
-- [ ] 297-306行解析中
-- [ ] 287-296行解析中
-- [ ] 277-286行解析中
-- [ ] 267-276行解析中
-- [ ] 257-266行解析中
-- [ ] 247-256行解析中
-- [ ] 237-246行解析中
-- [ ] 227-236行解析中
-- [ ] 217-226行解析中
-- [ ] 207-216行解析中
-- [ ] 197-206行解析中
-- [ ] 187-196行解析中
-- [ ] 177-186行解析中
-- [ ] 167-176行解析中
-- [ ] 157-166行解析中
-- [ ] 147-156行解析中
-- [ ] 137-146行解析中
-- [ ] 127-136行解析中
-- [ ] 117-126行解析中
-- [ ] 107-116行解析中
-- [ ] 97-106行解析中
-- [ ] 87-96行解析中
-- [ ] 77-86行解析中
-- [ ] 67-76行解析中
-- [ ] 57-66行解析中
-- [ ] 47-56行解析中
-- [ ] 37-46行解析中
-- [ ] 27-36行解析中
-- [ ] 17-26行解析中
-- [ ] 1-16行解析中
+- [x] 337-346行解析済み (src/aws-signature-v4.js, src/uri-utils.js, src/hex-utils.js)
+- [x] 327-336行解析済み (src/license-info.js, src/tslib-module.js)
+- [x] 317-326行解析済み (src/prometheus-serializer.js, src/prometheus-exporter.js, src/time-utils.js)
+- [x] 307-316行解析済み (src/http2-subchannel-call.js, src/status.js, src/metadata.js)
+- [x] 297-306行解析済み (src/file-loader.js, src/path-resolver.js, src/protobuf-types.js)
+- [x] 287-296行解析済み (src/otlp-metrics-exporter.js, src/float-utils.js, src/base64-utils.js)
+- [x] 277-286行解析済み (src/undici-headers.js, src/undici-response.js, src/undici-request.js, src/weak-ref-compatibility.js)
+- [x] 267-276行解析済み (src/http-request-sender.js, src/http2-client.js, src/undici-pool-base.js, src/proxy-agent.js)
+- [ ] 247-266行解析中
+- [ ] 227-246行解析中
+- [ ] 207-226行解析中
+- [ ] 187-206行解析中
+- [ ] 167-186行解析中
