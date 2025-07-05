@@ -6,7 +6,8 @@
       "Bash(find:*)",
       "Bash(sed:*)",
       "Bash(node:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(touch:*)"
     ]
   },
   "enabledMcpjsonServers": [

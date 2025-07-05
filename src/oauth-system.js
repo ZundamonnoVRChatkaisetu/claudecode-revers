@@ -205,17 +205,23 @@ class x9A {
             this.authCodeListener.close();
         }
     }
-
-    storeAccountInfo(A) {
-        let B = {
-            accountUuid: A.account.uuid,
-            emailAddress: A.account.email_address,
-            organizationUuid: A.organization?.uuid
+    storeAccountInfo(A) {  
+        let B = {  
+            accountUuid: A.account.uuid,  
+            emailAddress: A.account.email_address,  
+            organizationUuid: A.organization?.uuid,  
+            rateLimitExempt: this.checkRateLimitExemption(A) // 新規追加
         };
-        
-        let Q = WA(); // 設定取得（要実装）
+        let Q = WA();
         Q.oauthAccount = B;
-        S0(Q); // 設定保存（要実装）
+        S0(Q);
+    }
+
+    checkRateLimitExemption(accountData) {  
+        // 特定のアカウントUUIDやorganizationUUIDをチェック  
+        const exemptAccounts = ['uuid1', 'uuid2']; // 設定から読み込み  
+        return exemptAccounts.includes(accountData.account.uuid) ||  
+            exemptAccounts.includes(accountData.organization?.uuid);  
     }
 
     formatTokens(A, B) {

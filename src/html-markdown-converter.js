@@ -1430,6 +1430,752 @@ export class Table extends Array {
     }
 }
 
+/**
+ * Template Engine Utilities for HTML to Markdown Conversion (427-436行復元)
+ * Provides template compilation and string manipulation functions
+ */
+class TemplateEngine {
+  constructor() {
+    this.templateVariables = {
+      __t: undefined,
+      __p: '',
+      __e: this.escapeFunction.bind(this),
+      __j: Array.prototype.join
+    };
+  }
+
+  /**
+   * Compile template with dynamic JavaScript execution (417-426行復元)
+   * @param {string} templateString - Template string to compile
+   * @param {Object} options - Template compilation options
+   * @returns {Function} Compiled template function
+   */
+  compileTemplate(templateString, options = {}) {
+    try {
+      let templateCode = '';
+      let escapeEnabled = false;
+      
+      // Dynamic code generation processing
+      const conditionalCode = options.conditional;
+      const interpolationCode = options.interpolation;
+      
+      if (conditionalCode) {
+        escapeEnabled = true;
+        templateCode += "';";
+        templateCode += conditionalCode;
+        templateCode += ";\n__p += '";
+      }
+      
+      if (interpolationCode) {
+        templateCode += `' +
+((__t = (${interpolationCode})) == null ? '' : __t) +
+'`;
+      }
+      
+      // Variable validation and with statement generation
+      const variableName = options.variable;
+      let finalCode = templateCode;
+      
+      if (!variableName) {
+        finalCode = `with (obj) {
+${finalCode}
+}`;
+      } else if (this.isDangerousVariable(variableName)) {
+        throw new Error(`Invalid variable name: ${variableName}`);
+      }
+      
+      // Template string optimization
+      if (escapeEnabled) {
+        finalCode = finalCode.replace(/^\s*|\s*$/g, ''); // Remove whitespace
+      }
+      
+      finalCode = finalCode
+        .replace(/(__p \+= '';)/g, '$1') // Remove empty concatenations
+        .replace(/(;)\s*;/g, '$1'); // Remove duplicate semicolons
+      
+      // Function construction
+      const functionCode = `function(${variableName || 'obj'}) {
+${variableName ? '' : 'obj || (obj = {});'}
+var __t, __p = '', __j = Array.prototype.join;
+function print() { __p += __j.call(arguments, '') }
+${finalCode}
+return __p;
+}`;
+      
+      const templateFunction = new Function('return ' + functionCode)();
+      templateFunction.source = functionCode;
+      
+      return templateFunction;
+    } catch (error) {
+      if (this.isValidError(error)) {
+        throw error;
+      }
+      return this.createFallbackTemplate();
+    }
+  }
+
+  /**
+   * Create fallback template function
+   * @returns {Function} Fallback template function
+   */
+  createFallbackTemplate() {
+    return function(obj) {
+      return String(obj || '');
+    };
+  }
+
+  /**
+   * Check if variable name is dangerous
+   * @param {string} variableName - Variable name to check
+   * @returns {boolean} Is dangerous variable
+   */
+  isDangerousVariable(variableName) {
+    // Check for dangerous patterns in variable names
+    const dangerousPattern = /[^a-zA-Z0-9_$]/;
+    return dangerousPattern.test(variableName);
+  }
+
+  /**
+   * Generate template code with conditional processing
+   * @param {string} condition - Conditional code
+   * @param {string} interpolation - Interpolation code
+   * @returns {string} Generated template code
+   */
+  generateTemplateCode(condition, interpolation) {
+    let code = '';
+    
+    if (condition) {
+      code += `if(${condition}) {
+  __p += '`;
+    }
+    
+    if (interpolation) {
+      code += `' + ((__t = (${interpolation})) == null ? '' : __t) + '`;
+    }
+    
+    if (condition) {
+      code += `';
+}`;
+    }
+    
+    return code;
+  }
+
+  /**
+   * Optimize template string
+   * @param {string} templateString - Template string to optimize
+   * @param {boolean} escapeEnabled - Whether escape is enabled
+   * @returns {string} Optimized template string
+   */
+  optimizeTemplateString(templateString, escapeEnabled) {
+    let optimized = templateString;
+    
+    if (escapeEnabled) {
+      // Remove unnecessary escape processing
+      optimized = optimized.replace(/escape\(\s*''\s*\)/g, "''");
+    }
+    
+    // Remove empty string concatenations
+    optimized = optimized.replace(/\+\s*''\s*\+/g, '+');
+    optimized = optimized.replace(/'\s*\+\s*''/g, "'");
+    optimized = optimized.replace('');
+    
+    // Normalize semicolons
+    optimized = optimized.replace(/;\s*;/g, ';');
+    
+    return optimized;
+  }
+
+  /**
+   * Build safe execution context
+   * @param {string} variableName - Variable name for context
+   * @returns {string} Context setup code
+   */
+  buildExecutionContext(variableName) {
+    if (!variableName) {
+      return `with (obj) {
+  // Template code will be inserted here
+}`;
+    } else {
+      return `// Using variable: ${variableName}
+${variableName} || (${variableName} = {});`;
+    }
+  }
+
+  /**
+   * Print function for template output
+   * @param {...any} arguments - Arguments to join and append
+   */
+  print(...arguments) {
+    this.templateVariables.__p += this.templateVariables.__j.call(arguments, '');
+  }
+
+  /**
+   * Escape function for template security
+   * @param {string} text - Text to escape
+   * @returns {string} Escaped text
+   */
+  escapeFunction(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  /**
+   * Check if error is valid
+   * @param {Error} error - Error to validate
+   * @returns {boolean} Is valid error
+   */
+  isValidError(error) {
+    return error instanceof Error;
+  }
+}
+
+/**
+ * String Manipulation Utilities (427-436行復元)
+ * Provides comprehensive string processing functions
+ */
+class StringUtils {
+  /**
+   * Convert string to lowercase
+   * @param {string} str - String to convert
+   * @returns {string} Lowercase string
+   */
+  static toLowerCase(str) {
+    return this.ensureString(str).toLowerCase();
+  }
+
+  /**
+   * Convert string to uppercase
+   * @param {string} str - String to convert
+   * @returns {string} Uppercase string
+   */
+  static toUpperCase(str) {
+    return this.ensureString(str).toUpperCase();
+  }
+
+  /**
+   * Trim whitespace from both ends with custom characters
+   * @param {string} str - String to trim
+   * @param {string} chars - Characters to trim (optional)
+   * @param {boolean} guard - Guard against implicit coercion
+   * @returns {string} Trimmed string
+   */
+  static trim(str, chars, guard) {
+    str = this.ensureString(str);
+    
+    if (str && (guard || chars === undefined)) {
+      return this.trimDefaultWhitespace(str);
+    }
+    
+    if (!str || !(chars = this.castString(chars))) {
+      return str;
+    }
+
+    const strSymbols = this.stringToArray(str);
+    const chrSymbols = this.stringToArray(chars);
+    const start = this.charsStartIndex(strSymbols, chrSymbols);
+    const end = this.charsEndIndex(strSymbols, chrSymbols) + 1;
+
+    return this.castSlice(strSymbols, start, end).join('');
+  }
+
+  /**
+   * Trim whitespace from end with custom characters
+   * @param {string} str - String to trim
+   * @param {string} chars - Characters to trim (optional)
+   * @param {boolean} guard - Guard against implicit coercion
+   * @returns {string} Trimmed string
+   */
+  static trimEnd(str, chars, guard) {
+    str = this.ensureString(str);
+    
+    if (str && (guard || chars === undefined)) {
+      return str.slice(0, this.trimmedEndIndex(str) + 1);
+    }
+    
+    if (!str || !(chars = this.castString(chars))) {
+      return str;
+    }
+
+    const strSymbols = this.stringToArray(str);
+    const end = this.charsEndIndex(strSymbols, this.stringToArray(chars)) + 1;
+
+    return this.castSlice(strSymbols, 0, end).join('');
+  }
+
+  /**
+   * Trim whitespace from start with custom characters
+   * @param {string} str - String to trim
+   * @param {string} chars - Characters to trim (optional)
+   * @param {boolean} guard - Guard against implicit coercion
+   * @returns {string} Trimmed string
+   */
+  static trimStart(str, chars, guard) {
+    str = this.ensureString(str);
+    
+    if (str && (guard || chars === undefined)) {
+      return str.replace(/^\s+/, '');
+    }
+    
+    if (!str || !(chars = this.castString(chars))) {
+      return str;
+    }
+
+    const strSymbols = this.stringToArray(str);
+    const start = this.charsStartIndex(strSymbols, this.stringToArray(chars));
+
+    return this.castSlice(strSymbols, start).join('');
+  }
+
+  /**
+   * Truncate string with options
+   * @param {string} str - String to truncate
+   * @param {Object} options - Truncation options
+   * @returns {string} Truncated string
+   */
+  static truncate(str, options = {}) {
+    const defaultLength = 30;
+    const defaultOmission = '...';
+    
+    let {
+      length = defaultLength,
+      omission = defaultOmission,
+      separator
+    } = options;
+
+    str = this.ensureString(str);
+    const strLength = str.length;
+
+    if (this.hasUnicodeWord(str)) {
+      const strSymbols = this.stringToArray(str);
+      strLength = strSymbols.length;
+    }
+
+    if (length >= strLength) {
+      return str;
+    }
+
+    const end = length - this.getStringSize(omission);
+    if (end < 1) {
+      return omission;
+    }
+
+    let result = strSymbols ? this.castSlice(strSymbols, 0, end).join('') : str.slice(0, end);
+
+    if (separator === undefined) {
+      return result + omission;
+    }
+
+    if (strSymbols) {
+      end += result.length - end;
+    }
+
+    if (this.isRegExp(separator)) {
+      if (str.slice(end).search(separator)) {
+        let match;
+        let newResult = result;
+        
+        if (!separator.global) {
+          separator = new RegExp(separator.source, this.ensureString(/\w*$/.exec(separator)) + 'g');
+        }
+        
+        separator.lastIndex = 0;
+        while ((match = separator.exec(newResult))) {
+          var lastIndex = match.index;
+        }
+        
+        result = result.slice(0, lastIndex === undefined ? end : lastIndex);
+      }
+    } else if (str.indexOf(this.castString(separator), end) !== end) {
+      const index = result.lastIndexOf(separator);
+      if (index > -1) {
+        result = result.slice(0, index);
+      }
+    }
+
+    return result + omission;
+  }
+
+  /**
+   * Ensure value is string
+   * @param {any} value - Value to convert
+   * @returns {string} String representation
+   */
+  static ensureString(value) {
+    return value == null ? '' : String(value);
+  }
+
+  /**
+   * Cast value to string
+   * @param {any} value - Value to cast
+   * @returns {string} String representation
+   */
+  static castString(value) {
+    return value == null ? '' : String(value);
+  }
+
+  /**
+   * Convert string to array
+   * @param {string} str - String to convert
+   * @returns {Array} Array of characters/symbols
+   */
+  static stringToArray(str) {
+    return this.hasUnicodeWord(str) ? this.unicodeToArray(str) : this.asciiToArray(str);
+  }
+
+  /**
+   * Check if string has unicode characters
+   * @param {string} str - String to check
+   * @returns {boolean} Has unicode
+   */
+  static hasUnicodeWord(str) {
+    return /[^\x00-\x7F]/.test(str);
+  }
+
+  /**
+   * Convert unicode string to array
+   * @param {string} str - Unicode string
+   * @returns {Array} Array of unicode characters
+   */
+  static unicodeToArray(str) {
+    return str.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[^\uD800-\uDFFF]/g) || [];
+  }
+
+  /**
+   * Convert ASCII string to array
+   * @param {string} str - ASCII string
+   * @returns {Array} Array of characters
+   */
+  static asciiToArray(str) {
+    return str.split('');
+  }
+
+  /**
+   * Find start index for character trimming
+   * @param {Array} strSymbols - String symbols array
+   * @param {Array} chrSymbols - Characters to trim array
+   * @returns {number} Start index
+   */
+  static charsStartIndex(strSymbols, chrSymbols) {
+    let index = -1;
+    const length = strSymbols.length;
+
+    while (++index < length && this.arrayIncludes(chrSymbols, strSymbols[index])) {
+      // Continue finding start index
+    }
+    
+    return index;
+  }
+
+  /**
+   * Find end index for character trimming
+   * @param {Array} strSymbols - String symbols array
+   * @param {Array} chrSymbols - Characters to trim array
+   * @returns {number} End index
+   */
+  static charsEndIndex(strSymbols, chrSymbols) {
+    let index = strSymbols.length;
+
+    while (index-- && this.arrayIncludes(chrSymbols, strSymbols[index])) {
+      // Continue finding end index
+    }
+    
+    return index;
+  }
+
+  /**
+   * Cast slice of array
+   * @param {Array} array - Array to slice
+   * @param {number} start - Start index
+   * @param {number} end - End index
+   * @returns {Array} Sliced array
+   */
+  static castSlice(array, start, end) {
+    const length = array.length;
+    end = end === undefined ? length : end;
+    return (!start && end === length) ? array : array.slice(start, end);
+  }
+
+  /**
+   * Check if array includes value
+   * @param {Array} array - Array to check
+   * @param {any} value - Value to find
+   * @returns {boolean} Includes value
+   */
+  static arrayIncludes(array, value) {
+    return array.indexOf(value) !== -1;
+  }
+
+  /**
+   * Trim default whitespace
+   * @param {string} str - String to trim
+   * @returns {string} Trimmed string
+   */
+  static trimDefaultWhitespace(str) {
+    return str.replace(/^\s+|\s+$/g, '');
+  }
+
+  /**
+   * Get trimmed end index
+   * @param {string} str - String to check
+   * @returns {number} End index
+   */
+  static trimmedEndIndex(str) {
+    let index = str.length;
+    while (index-- && /\s/.test(str[index])) {
+      // Continue finding end
+    }
+    return index;
+  }
+
+  /**
+   * Get string size
+   * @param {string} str - String to measure
+   * @returns {number} String size
+   */
+  static getStringSize(str) {
+    return this.hasUnicodeWord(str) ? this.unicodeSize(str) : str.length;
+  }
+
+  /**
+   * Get unicode string size
+   * @param {string} str - Unicode string
+   * @returns {number} Unicode size
+   */
+  static unicodeSize(str) {
+    let result = 0;
+    let index = 0;
+    const length = str.length;
+
+    while (index < length) {
+      const code = str.charCodeAt(index++);
+      if (code >= 0xd800 && code <= 0xdbff && index < length) {
+        const code2 = str.charCodeAt(index++);
+        if ((code2 & 0xfc00) === 0xdc00) {
+          result++;
+        } else {
+          result += 2;
+          index--;
+        }
+      } else {
+        result++;
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Check if value is RegExp
+   * @param {any} value - Value to check
+   * @returns {boolean} Is RegExp
+   */
+  static isRegExp(value) {
+    return value instanceof RegExp;
+  }
+}
+
+/**
+ * Lodash API Manager (427-436行復元)
+ * Manages public API methods and prototype extensions
+ */
+class LodashAPI {
+  constructor() {
+    this.api = {};
+    this.initializeCoreMethods();
+    this.initializeArrayMethods();
+    this.initializeFunctionMethods();
+    this.initializeStringMethods();
+    this.initializeMathMethods();
+    this.initializePrototypeMethods();
+  }
+
+  /**
+   * Initialize core methods
+   */
+  initializeCoreMethods() {
+    Object.assign(this.api, {
+      after: this.after.bind(this),
+      ary: this.ary.bind(this),
+      assign: this.assign.bind(this),
+      assignIn: this.assignIn.bind(this),
+      assignInWith: this.assignInWith.bind(this),
+      assignWith: this.assignWith.bind(this),
+      at: this.at.bind(this),
+      before: this.before.bind(this),
+      bind: this.bind.bind(this),
+      bindAll: this.bindAll.bind(this),
+      bindKey: this.bindKey.bind(this),
+      castArray: this.castArray.bind(this),
+      chain: this.chain.bind(this),
+      constant: this.constant.bind(this),
+      countBy: this.countBy.bind(this),
+      create: this.create.bind(this),
+      defaults: this.defaults.bind(this),
+      defaultsDeep: this.defaultsDeep.bind(this),
+      defer: this.defer.bind(this),
+      delay: this.delay.bind(this)
+    });
+  }
+
+  /**
+   * Initialize array manipulation methods
+   */
+  initializeArrayMethods() {
+    Object.assign(this.api, {
+      chunk: this.chunk.bind(this),
+      compact: this.compact.bind(this),
+      concat: this.concat.bind(this),
+      difference: this.difference.bind(this),
+      differenceBy: this.differenceBy.bind(this),
+      differenceWith: this.differenceWith.bind(this),
+      drop: this.drop.bind(this),
+      dropRight: this.dropRight.bind(this),
+      dropRightWhile: this.dropRightWhile.bind(this),
+      dropWhile: this.dropWhile.bind(this),
+      fill: this.fill.bind(this),
+      filter: this.filter.bind(this),
+      flatMap: this.flatMap.bind(this),
+      flatMapDeep: this.flatMapDeep.bind(this),
+      flatMapDepth: this.flatMapDepth.bind(this),
+      flatten: this.flatten.bind(this),
+      flattenDeep: this.flattenDeep.bind(this),
+      flattenDepth: this.flattenDepth.bind(this)
+    });
+  }
+
+  /**
+   * Initialize function manipulation methods
+   */
+  initializeFunctionMethods() {
+    Object.assign(this.api, {
+      curry: this.curry.bind(this),
+      curryRight: this.curryRight.bind(this),
+      debounce: this.debounce.bind(this),
+      throttle: this.throttle.bind(this),
+      memoize: this.memoize.bind(this),
+      negate: this.negate.bind(this),
+      once: this.once.bind(this),
+      partial: this.partial.bind(this),
+      partialRight: this.partialRight.bind(this),
+      rearg: this.rearg.bind(this),
+      rest: this.rest.bind(this),
+      spread: this.spread.bind(this),
+      unary: this.unary.bind(this),
+      wrap: this.wrap.bind(this)
+    });
+  }
+
+  /**
+   * Initialize string processing methods
+   */
+  initializeStringMethods() {
+    Object.assign(this.api, {
+      camelCase: this.camelCase.bind(this),
+      capitalize: this.capitalize.bind(this),
+      deburr: this.deburr.bind(this),
+      endsWith: this.endsWith.bind(this),
+      escape: this.escape.bind(this),
+      escapeRegExp: this.escapeRegExp.bind(this),
+      kebabCase: this.kebabCase.bind(this),
+      lowerCase: this.lowerCase.bind(this),
+      lowerFirst: this.lowerFirst.bind(this),
+      pad: this.pad.bind(this),
+      padEnd: this.padEnd.bind(this),
+      padStart: this.padStart.bind(this),
+      parseInt: this.parseInt.bind(this),
+      repeat: this.repeat.bind(this),
+      replace: this.replace.bind(this),
+      snakeCase: this.snakeCase.bind(this),
+      split: this.split.bind(this),
+      startCase: this.startCase.bind(this),
+      startsWith: this.startsWith.bind(this),
+      toLower: StringUtils.toLowerCase.bind(StringUtils),
+      toUpper: StringUtils.toUpperCase.bind(StringUtils),
+      trim: StringUtils.trim.bind(StringUtils),
+      trimEnd: StringUtils.trimEnd.bind(StringUtils),
+      trimStart: StringUtils.trimStart.bind(StringUtils),
+      truncate: StringUtils.truncate.bind(StringUtils),
+      unescape: this.unescape.bind(this),
+      upperCase: this.upperCase.bind(this),
+      upperFirst: this.upperFirst.bind(this),
+      words: this.words.bind(this)
+    });
+  }
+
+  /**
+   * Initialize mathematical calculation methods
+   */
+  initializeMathMethods() {
+    Object.assign(this.api, {
+      add: this.add.bind(this),
+      ceil: this.ceil.bind(this),
+      divide: this.divide.bind(this),
+      floor: this.floor.bind(this),
+      max: this.max.bind(this),
+      maxBy: this.maxBy.bind(this),
+      mean: this.mean.bind(this),
+      meanBy: this.meanBy.bind(this),
+      min: this.min.bind(this),
+      minBy: this.minBy.bind(this),
+      multiply: this.multiply.bind(this),
+      round: this.round.bind(this),
+      subtract: this.subtract.bind(this),
+      sum: this.sum.bind(this),
+      sumBy: this.sumBy.bind(this)
+    });
+  }
+
+  /**
+   * Initialize prototype extension methods
+   */
+  initializePrototypeMethods() {
+    Object.assign(this.api, {
+      at: this.at.bind(this),
+      chain: this.chain.bind(this),
+      commit: this.commit.bind(this),
+      next: this.next.bind(this),
+      plant: this.plant.bind(this),
+      reverse: this.reverse.bind(this),
+      toJSON: this.toJSON.bind(this),
+      valueOf: this.valueOf.bind(this),
+      value: this.value.bind(this),
+      first: this.first.bind(this),
+      head: this.head.bind(this)
+    });
+  }
+
+  // Placeholder methods - would need full implementation
+  after() { return this.createPlaceholderMethod('after'); }
+  ary() { return this.createPlaceholderMethod('ary'); }
+  assign() { return this.createPlaceholderMethod('assign'); }
+  // ... (other method implementations would go here)
+
+  /**
+   * Create placeholder method for incomplete implementations
+   * @param {string} methodName - Name of the method
+   * @returns {Function} Placeholder function
+   */
+  createPlaceholderMethod(methodName) {
+    return function(...args) {
+      console.warn(`Method ${methodName} is not fully implemented yet`);
+      return args[0]; // Return first argument as fallback
+    };
+  }
+
+  /**
+   * Get the complete API object
+   * @returns {Object} API object with all methods
+   */
+  getAPI() {
+    return this.api;
+  }
+}
+
 // Default export
 export default {
     TurndownService,
@@ -1441,5 +2187,8 @@ export default {
     TextUtils,
     supportsColor,
     Colors,
-    Table
+    Table,
+    TemplateEngine,
+    StringUtils,
+    LodashAPI
 };

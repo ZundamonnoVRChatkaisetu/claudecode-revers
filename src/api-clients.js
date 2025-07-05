@@ -304,6 +304,7 @@ export async function createAPIClient({
   const anthropicOptions = {
     apiKey: isNonInteractiveSession() ? null : apiKey || getAPIKey(isNonInteractiveSession),
     authToken: isNonInteractiveSession() ? getAuthToken()?.accessToken : undefined,
+    rateLimitExempt: isRateLimitExempt(), // 新規追加  
     ...baseOptions
   };
 

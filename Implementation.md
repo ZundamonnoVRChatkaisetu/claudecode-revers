@@ -4214,4 +4214,189 @@
     - `blockquote`（引用）: `<blockquote>`→引用ブロック変換
       - 前後改行削除（`replace(/^\n+|\n+$/g, "")`）
       - 各行先頭に`> `追加（`replace(/^/gm, "> ")`）
+
+- [x] 427-436行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **Lodashライブラリテンプレートエンジン実装**
+    - テンプレート変数定義：`var __t, __p = ''`（出力バッファ）
+    - エスケープ機能：`__e = _.escape`（JA条件で有効化）
+    - 配列結合機能：`__j = Array.prototype.join`（SA条件で有効化）
+    - print関数：`function print() { __p += __j.call(arguments, '') }`
+  - **動的JavaScript実行・コンパイル機能**
+    - `EQ=Nx(function(){return vB(k1,XB+"return "+w0).apply(A,r1)})`
+    - エラー処理：`if(EQ.source=w0,vG(EQ))throw EQ`
+    - テンプレート関数返却機能
+  - **文字列操作・変換関数群実装**
+    - `RV`（toLowerCase）: 文字列小文字変換
+    - `oP`（toUpperCase）: 文字列大文字変換
+    - `FH`（trim）: 前後空白除去（カスタム文字指定対応）
+    - `IB1`（trimEnd）: 末尾空白除去機能
+    - `rN1`（trimStart）: 先頭空白除去機能
+    - `sN1`（truncate）: 文字列切り詰め・省略機能
+  - **Lodash API公開設定・プロトタイプ拡張**
+    - `w1.after=k6,w1.ary=w6,w1.assign=sp`等のAPI配布
+    - 配列・オブジェクト操作関数（chunk,compact,concat等）
+    - 関数操作（curry,debounce,throttle等）
+    - 文字列処理（camelCase,kebabCase,snakeCase等）
+    - 数学計算（add,divide,multiply,subtract等）
+    - プロトタイプメソッド拡張（chain,at,commit等）
+
+- [x] 417-426行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **JavaScript テンプレート動的コード生成機能**
+    - 条件分岐処理：`if(cZ)SA=!0,w0+=`で条件コード追加
+    - コード文字列構築：`__p += '`セクション追加
+    - 変数展開処理：`((__t = (`+Z6+`)) == null ? '' : __t)`
+    - エスケープ無効時の出力処理（__t変数使用）
+    - テンプレート処理長計算：`F0=kW+Z9.length`
+  - **オブジェクト変数検証・with文生成**
+    - 変数名取得：`$.variable`から変数名抽出
+    - with文生成（変数名未指定時）：`with (obj) { ... }`
+    - 危険変数チェック：`xA.test(G9)`で変数名検証
+    - エラー投出：`throw new iB(G)`で不正変数時エラー
+  - **テンプレート文字列最適化・関数構築**
+    - 置換処理：`u2`,`K6`,`S3`正規表現による最適化
+    - 関数定義構築：`function(`+変数名+`) { ... }`
+    - オブジェクト初期化：`obj || (obj = {})`（変数名無指定時）
+    - デフォルト変数名設定：`"obj"`使用
+  - **エスケープ機能・セキュリティ処理**
+    - エスケープフラグ：`SA`変数によるエスケープ制御
+    - 文字列置換による正規化処理
+    - with文による安全性確保
+    - テンプレート実行コンテキスト制御
+
+- [x] 407-416行解析済み (src/image-processing.js)
+  **処理内容詳細:**
+  - **Sharp画像処理ライブラリ実装**
+    - デバッグログ機能：`gE6.debuglog("sharp")`でログ出力
+    - Duplex ストリーム継承：`IAA.Duplex`で双方向ストリーム実装
+    - 画像処理オプション初期化：オフセット・サイズ・回転・拡張設定
+    - 色空間変換・ガンマ補正・明度調整オプション
+  - **画像処理コアオプション設定**
+    - 位置設定：`topOffsetPre`,`leftOffsetPre`,`widthPre`,`heightPre`
+    - リサイズ設定：`canvas:"crop"`,`position:0`,`resizeBackground`
+    - 回転・変形：`angle`,`rotationAngle`,`rotationBackground`,`flip`,`flop`
+    - 拡張設定：`extendTop`,`extendBottom`,`extendLeft`,`extendRight`
+  - **画像フィルター・エフェクト機能**
+    - 補間設定：`kernel:"lanczos3"`,`fastShrinkOnLoad:!0`
+    - 色調調整：`tint`,`flatten`,`flattenBackground`,`negate`,`negateAlpha`
+    - フィルター効果：`medianSize`,`blurSigma`,`sharpenSigma`,`threshold`
+    - 正規化：`normalise`,`normaliseLower`,`normaliseUpper`,`clahe`設定
+  - **出力フォーマット・品質制御**
+    - JPEG設定：`jpegQuality:80`,`jpegProgressive`,`jpegChromaSubsampling`
+    - PNG設定：`pngCompressionLevel:6`,`pngAdaptiveFiltering`,`pngPalette`
+    - WebP設定：`webpQuality:80`,`webpLossless`,`webpEffort:4`
+    - TIFF設定：`tiffCompression:"jpeg"`,`tiffPredictor:"horizontal"`
+  - **ストリーム処理・メタデータ管理**
+    - ストリーム入力検出：`_isStreamInput()`メソッド
+    - バッファ統合：`_flattenBufferIn()`でストリームバッファ結合
+    - メタデータ保持：`keepMetadata`,`withExif`,`withIccProfile`
+    - タイムアウト・キューリスナー：`timeoutSeconds`,`queueListener`
+
+- [x] 397-406行解析済み (src/security-filters.js)
+  **処理内容詳細:**
+  - **Google Cloud Platform認証システム**
+    - GCE(Google Compute Engine)メタデータURL定義
+    - クラス`re1`によるGoogle認証管理システム
+    - 認証情報キャッシュ：`cachedCredential`,`jsonContent`,`_cachedProjectId`
+    - クライアントオプション・スコープ・APIキー管理
+  - **認証設定・初期化処理**
+    - プロジェクトID管理：`_cachedProjectId`,`keyFilename`,`scopes`
+    - 認証クライアント：`clientOptions`,`jsonContent`,`apiKey`
+    - APIキー・認証情報排他制御エラー処理
+    - ユニバースドメイン設定：`universeDomain`
+  - **認証メソッド・プロジェクトID取得**
+    - Gapic JWT値設定：`setGapicJWTValues`メソッド
+    - プロジェクトID取得：`getProjectId`,`getProjectIdAsync`
+    - プロジェクトID検索・キャッシュ：`findAndCacheProjectId`
+    - エラー処理：`NO_PROJECT_ID_FOUND`例外
+  - **XSSフィルターライブラリ実装**
+    - CSS プロパティホワイトリスト：`jw2()`でCSS安全プロパティ定義
+    - HTMLタグ属性フィルター：`pw2()`でHTMLタグ許可属性定義
+    - XSS攻撃対策：`javascript:`スクリプト実行防止
+    - CSS値サニタイゼーション：`ZY6()`で危険値除去
+  - **HTML/CSSサニタイゼーション機能**
+    - ユーティリティ関数：`indexOf`,`forEach`,`trim`,`spaceIndex`
+    - CSS構文解析：コメント除去・プロパティ値検証
+    - HTMLタグ許可リスト：`a`,`img`,`table`等安全タグ定義
+    - 属性フィルタリング：`src`,`href`,`alt`等安全属性のみ許可
       - 前後空行追加
+
+- [x] 387-396行解析済み (src/aws-auth-manager.js, src/google-auth-manager.js)
+  **処理内容詳細:**
+  - **AWS署名認証システム (qU2)**
+    - AWSリクエスト署名生成：`amzDate`,`authorizationHeader`,`canonicalQuerystring`
+    - AWS認証ヘッダー構築：`Credential`,`SignedHeaders`,`Signature`
+    -暗号化処理：`crypto.sha256DigestHex`,`LZ6`,`x11`暗号化関数
+    - アクセスキー管理：`accessKeyId`,`secretAccessKey`,`region`
+  - **AWSセキュリティ認証情報サプライヤー (NU2)**
+    - IMDSv2セッショントークン管理：`imdsV2SessionTokenUrl`,`x-aws-ec2-metadata-token`
+    - リージョン取得：`getAwsRegion`,`regionUrl`,`AWS_REGION`,`AWS_DEFAULT_REGION`
+    - セキュリティ認証情報取得：`getAwsSecurityCredentials`,`AccessKeyId`,`SecretAccessKey`,`Token`
+    - エラー処理：認証情報ソース不足エラー
+  - **AWSクライアント (f11)**
+    - 外部アカウント認証クライアント：`BaseExternalAccountClient`継承
+    - 認証情報サプライヤー：`awsSecurityCredentialsSupplier`,`programmatic`/`aws`タイプ
+    - リージョナル認証確認URL：`regional_cred_verification_url`
+    - 環境ID検証：`environment_id`形式`aws1`検証
+  - **Google認証例外メッセージ定義**
+    - APIキー・認証情報排他制御：`API_KEY_WITH_CREDENTIALS`
+    - プロジェクトID検出失敗：`NO_PROJECT_ID_FOUND`
+    - 認証情報検出失敗：`NO_CREDENTIALS_FOUND`
+    - ADC読み込み失敗：`NO_ADC_FOUND`
+    - ユニバースドメイン検出失敗：`NO_UNIVERSE_DOMAIN_FOUND`
+
+- [x] 377-386行解析済み (src/json-processor.js)
+  **処理内容詳細:**
+  - **JSON処理システム (PE2)**
+    - JSON.stringify関数の拡張モジュール：数値型インデント、文字列インデント対応
+    - 復元関数：`replacer`パラメーター対応、可読性向上改行処理
+    - オブジェクト最適化：プロパティ多重ループ防止、メモリリーク対策
+  - **BigIntセキュリティJSONパーサー (yE2)**
+    - セキュリティ正規表現：`__proto__`検出(zD6)、`constructor`検出(UD6)
+    - BigIntオプション：`strict`,`storeAsString`,`alwaysParseAsBig`,`useNativeBigInt`
+    - プロトタイプ汚染攻撃対策：`protoAction`,`constructorAction`(error/ignore/preserve)
+    - 数値精度管理：15桁超過時BigInt変換、無限値エラー処理
+  - **GCP環境検出システム (_t1)**
+    - Google Cloud Serverless検出：`CLOUD_RUN_JOB`,`FUNCTION_NAME`,`K_SERVICE`
+    - Google Compute Engine検出：`/sys/class/dmi/id/bios_vendor`BIOS情報読み取り
+    - MACアドレス検証：`42:01`接頭語パターン(ND6)でGoogleインスタンス判定
+    - GCPレジデンシー統合処理：`detectGCPResidency`関数
+  - **コンソール色彩管理 (lE2)**
+    - TTY検出と色深度チェック：`getColorDepth()`結果による色有効化
+    - ANSIエスケープシーケンス：`reset`,`bright`,`dim`,`red`,`green`,`yellow`,`blue`,`magenta`,`cyan`,`white`,`grey`
+    - リアルタイム色彩管理：`refresh()`メソッドでstderr状態更新
+  - **高度ログシステム (oE2)**
+    - ログレベル定義：`DEFAULT`,`DEBUG`,`INFO`,`WARNING`,`ERROR`
+    - フィルターシステム：ワイルドカードパターン`*`、正規表現変換
+    - イベントエミッター継承：`AdhocDebugLogger`クラスで非同期ログ処理
+    - バックエンド切り替え：`getNodeBackend`,`getDebugBackend`,`getStructuredBackend`
+
+- [x] 367-376行解析済み (src/date-time-processor.js, src/bedrock-runtime-core.js)
+  **処理内容詳細:**
+  - **スタックトレース警告システム (F11)**
+    - コンソール警告出力：`warn:console.warn`メソッドでスタックトレース表示
+    - スタックトレースフィルター：5行制限、`stackTraceWarning`除外処理
+  - **UTC日時処理システム (xY2)**
+    - 曜日配列：`["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]`
+    - 月名配列：`["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]`
+    - UTC文字列生成：`dateToUtcString`関数でGMT形式出力
+    - ゼロパディング：10未満の数値に`0`接頭語追加
+  - **RFC-3339日時パーサー (yA6)**
+    - 正規表現：`(\d{4})-(\d{2})-(\d{2})[tT](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?[zZ]`
+    - ISO8601日時形式解析：年月日時分秒、ミリ秒対応
+    - タイムゾーン処理：`Z`(UTC)、オフセット`[-+]\d{2}:\d{2}`対応
+  - **RFC-7231日時パーサー (gA6)**
+    - HTTPヘッダー日時形式：`Mon, 01 Jan 2024 00:00:00 GMT`
+    - 複数フォーマット対応：`fA6`,`vA6`,`bA6`正規表現
+    - 曜日名検証：英語曜日名、省略形・完全形対応
+  - **エポックタイムスタンプ処理 (hA6)**
+    - 数値・文字列・オブジェクト型対応：`number`,`string`,`object.tag`
+    - 無限値・非数値エラー処理：`NaN`,`Infinity`,`-Infinity`検出
+    - ミリ秒変換：`Math.round(timestamp*1000)`でDateオブジェクト生成
+  - **Bedrock Runtimeコアシステム**
+    - アクセス拒否例外：`AccessDeniedException`
+    - ガードレールコマンド：`ApplyGuardrailCommand`
+    - 非同期呼び出し：`AsyncInvokeStatus`,`AsyncInvokeOutputDataConfig`
+    - コンテンツブロック：`ContentBlock`,`ContentBlockDelta`クラス
+    - UUIDライブラリ統合：`v1`,`v3`,`v4`,`v5`バージョン対応

@@ -199,3 +199,9 @@
 - [x] 477-496行解析済み (src/html-markdown-converter.js)
 - [x] 457-476行解析済み (src/html-markdown-converter.js)
 - [x] 437-456行解析済み (src/html-markdown-converter.js)
+- [x] 427-436行解析済み (src/html-markdown-converter.js)
+- [x] 417-426行解析済み (src/html-markdown-converter.js)
+- [x] 407-416行解析済み (src/image-processing.js)
+- [x] 397-406行解析済み (src/security-filters.js)
+- [x] 387-396行解析済み (src/aws-auth-manager.js, src/google-auth-manager.js)
+- [ ] 377-386行解析中
