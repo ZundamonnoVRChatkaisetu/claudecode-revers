@@ -161,22 +161,29 @@
 - [x] 1007-1016行解析済み (src/sandbox-manager.js)
 - [x] 997-1006行解析済み (src/sandbox-manager.js)
 - [x] 977-986行解析済み (src/sandbox-manager.js - コマンド実行・パスクォート処理拡張)
-- [x] 967-976行解析済み (src/bash-configuration.js)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- [x] 967-976行解析済み(src/bash-configuration.js)
+- [x] 957-966行解析済み(src/bash-configuration.js)
+- [x] 947-956行解析済み(src/bash-configuration.js)
+- [x] 937-946行解析済み(src/bash-configuration.js)
+- [x] 927-936行解析済み(src/bash-configuration.js)
+- [x] 917-926行解析済み(src/bash-configuration.js)
+- [x] 907-916行解析済み(src/bash-configuration.js)
+- [x] 897-906行解析済み(src/bash-configuration.js)
+- [x] 887-896行解析済み(src/bash-configuration.js)
+- [x] 877-886行解析済み(src/bash-configuration.js)
+- [x] 867-876行解析済み(src/bash-configuration.js)
+- [x] 857-866行解析済み(src/bash-configuration.js)
+- [x] 847-856行解析済み(src/bash-configuration.js)
+- [x] 837-846行解析済み(src/bash-configuration.js)
+- [x] 827-836行解析済み(src/bash-configuration.js)
+- [x] 817-826行解析済み(src/bash-configuration.js)
+- [x] 807-816行解析済み(src/bash-configuration.js)
+- [x] 797-806行解析済み(src/bash-configuration.js)
+- [x] 787-796行解析済み(src/bash-configuration.js)
+- [x] 777-786行解析済み(src/bash-configuration.js)
+- [x] 767-776行解析済み (src/bash-configuration.js)
+- [x] 757-766行解析済み(src/todo-management.js)
+- [x] 747-756行解析済み(src/web-fetch.js)
+- [x] 737-746行解析済み(src/web-fetch.js)
+- [x] 727-736行解析済み(src/telemetry.js, src/ripgrep-integration.js, src/web-fetch.js)
+- [x] 717-726行解析済み(src/config-utils.js, src/settings-manager.js, src/install-method-detector.js)

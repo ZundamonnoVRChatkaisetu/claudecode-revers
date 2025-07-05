@@ -1,4 +1,19 @@
 // Utility functions
+
+// Memoization utility
+function O0(fn, keyFn = (...args) => JSON.stringify(args)) {
+    const cache = new Map();
+    return (...args) => {
+        const key = keyFn(...args);
+        if (cache.has(key)) {
+            return cache.get(key);
+        }
+        const result = fn(...args);
+        cache.set(key, result);
+        return result;
+    };
+}
+
 export function TT() {
   // Generate UUID
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -7,3 +22,8 @@ export function TT() {
     return v.toString(16);
   });
 }
+
+module.exports = {
+    O0,
+    TT
+};

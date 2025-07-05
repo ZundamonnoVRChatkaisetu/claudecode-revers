@@ -190,6 +190,235 @@ class BashConfiguration {
                 toolIntegration: 'LS tool integration for validation'
             }
         };
+        this.initializeGrepToolDescription();
+        this.initializeTodoReadTool();
+        this.initializeGlobTool();
+        this.initializeTodoWriteTool();
+    }
+
+    /**
+     * TodoWriteツール初期化
+     */
+    initializeTodoWriteTool() {
+        this.todoWriteTool = {
+            name: "TodoWrite",
+            description: "Update the todo list for the current session. To be used proactively and often to track progress and pending tasks.",
+            userFacingName: "Update Todos",
+            inputSchema: {
+                todos: { type: 'array', description: 'The updated todo list' }
+            },
+            isReadOnly: false,
+            detailedPrompt: `## Task States and Management
+
+1. **Task States**: Use these states to track progress:
+   - pending: Task not yet started
+   - in_progress: Currently working on (limit to ONE task at a time)
+   - completed: Task finished successfully
+
+2. **Task Management**:
+   - Update task status in real-time as you work
+   - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
+
+3. **Task Completion Requirements**:
+   - ONLY mark a task as completed when you have FULLY accomplished it
+   - If you encounter errors, blockers, or cannot finish, keep the task as in_progress
+   - When blocked, create a new task describing what needs to be resolved
+   - Never mark a task as completed if:
+     - Tests are failing
+
+4. **Task Breakdown**:
+   - Create specific, actionable items
+   - Break complex tasks into smaller, manageable steps
+   - Use clear, descriptive task names
+
+When in doubt, use this tool. Being proactive with task management demonstrates attentiveness and ensures you complete all requirements successfully.
+
+1. Complex multi-step tasks - When a task requires 3 or more distinct steps or actions
+2. Non-trivial and complex tasks - Tasks that require careful planning or multiple operations
+3. User explicitly requests todo list - When the user directly asks you to use the todo list
+4. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)
+5. After receiving new instructions - Immediately capture user requirements as todos
+6. When you start working on a task - Mark it as in_progress BEFORE beginning work. Ideally you should only have one todo as in_progress at a time
+7. After completing a task - Mark it as completed and add any new follow-up tasks discovered during implementation
+
+## When NOT to Use This Tool
+
+`
+        };
+`
+<example>
+User: Can you help optimize my React application? It's rendering slowly and has performance issues.
+Assistant: I'll help optimize your React application. First, let me examine your codebase to identify potential performance bottlenecks.
+*Reviews component structure, render patterns, state management, and data fetching*
+Assistant: After analyzing your codebase, I've identified several performance issues. Let me create a todo list to track our optimization efforts.
+*Creates todo list with items like: 1) Implement memoization for expensive calculations in ProductList, 2) Add virtualization for long lists in Dashboard, 3) Optimize image loading in Gallery component, 4) Fix state update loops in ShoppingCart, 5) Review bundle size and implement code splitting*
+Let's start by implementing memoization for the expensive calculations in your ProductList component.
+
+<reasoning>
+The assistant used the todo list because:
+1. First, the assistant examined the codebase to identify specific performance issues
+2. Based on this analysis, it identified multiple optimization opportunities
+3. Performance optimization is a non-trivial task requiring multiple steps
+4. The todo list helps methodically track improvements across different components
+5. This systematic approach ensures all performance bottlenecks are addressed
+</reasoning>
+</example>
+
+## Examples of When NOT to Use the Todo List
+
+<example>
+User: How do I print 'Hello World' in Python?
+Assistant: In Python, you can print "Hello World" with this simple code:
+
+```
+python
+print("Hello World")
+```
+
+This will output the text "Hello World" to the console when executed.
+
+<reasoning>
+The assistant did not use the todo list because this is a single, trivial task that can be completed in one step. There's no need to track multiple tasks or steps for such a straightforward request.
+</reasoning>
+</example>
+
+<example>
+User: What does the git status command do?
+Assistant: The git status command shows the current state of your working directory and staging area. It displays which changes have been staged, which haven't, and which files aren't being tracked by Git. This is a fundamental command for understanding the current state of your repository before making commits.
+
+<reasoning>
+The assistant did not use the todo list because this is an informational request with no actual coding task to complete. The user is simply asking for an explanation, not for the assistant to perform multiple steps or tasks.
+</reasoning>
+</example>
+
+<example>
+User: Can you add a comment to the calculateTotal function to explain what it does?
+Assistant: Sure, let me add a comment to the calculateTotal function to explain what it does.
+* Uses the Edit tool to add a comment to the calculateTotal function *
+
+<reasoning>
+The assistant did not use the todo list because this is a single, straightforward task confined to one location in the code. Adding a comment doesn't require tracking multiple steps or systematic organization.
+</reasoning>
+</example>
+
+<example>
+User: Run npm install for me and tell me what happens.
+Assistant: I'll run the npm install command for you.
+
+*Executes: npm install*
+
+<tool_output>
+The command completed successfully. Here's the output:
+[Output of npm install command]
+
+All dependencies have been installed according to your package.json file.
+</tool_output>
+
+<reasoning>
+The assistant did not use the todo list because this is a single command execution with immediate results. There are no multiple steps to track or organize, making the todo list unnecessary for this straightforward task.
+</reasoning>
+</example>
+
+<example>
+User: Help me rename the function getCwd to getCurrentWorkingDirectory across my project
+Assistant: Let me first search through your codebase to find all occurrences of 'getCwd'.
+*Uses grep or search tools to locate all instances of getCwd in the codebase*
+Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.
+*Creates todo list with specific items for each file that needs updating*
+
+<reasoning>
+The assistant used the todo list because:
+1. First, the assistant searched to understand the scope of the task
+2. Upon finding multiple occurrences across different files, it determined this was a complex task with multiple steps
+3. The todo list helps ensure every instance is tracked and updated systematically
+4. This approach prevents missing any occurrences and maintains code consistency
+</reasoning>
+</example>
+
+<example>
+User: I need to implement these features for my e-commerce site: user registration, product catalog, shopping cart, and checkout flow.
+Assistant: I'll help implement these features. First, let's add all the features to the todo list.
+*Creates a todo list breaking down each feature into specific tasks based on the project architecture*
+Assistant: Let's start with user registration. This will involve creating database models, API endpoints, and frontend forms that integrate with your existing authentication system.
+
+<reasoning>
+The assistant used the todo list because:
+1. The user provided multiple complex features to implement in a comma separated list
+2. The todo list helps organize these large features into manageable tasks
+3. This approach allows for tracking progress across the entire implementation
+</reasoning>
+</example>
+
+<example>
+User: Can you add a dark mode to the application? Make sure to add tests and run the build afterward.
+Assistant: I can do that. I'll create a todo list to track the progress.
+*Creates todo list with items like: 1) Implement dark mode toggle in UI, 2) Update styling for dark mode, 3) Add dark mode state management, 4) Write unit tests for dark mode, 5) Run build and ensure no errors, 6) Ensure tests and build succeed*
+*Begins working on the first task*
+
+<reasoning>
+The assistant used the todo list because:
+1. Adding dark mode is a multi-step feature requiring UI, state management, and styling changes
+2. The user explicitly requested tests and build be run afterward
+3. The assistant inferred that tests and build need to pass by adding "Ensure tests and build succeed" as the final task
+</reasoning>
+</example>
+`
+        };
+
+        this.todoReadTool.detailedPrompt = `Use this tool to read the current to-do list for the session. This tool should be used proactively and frequently to ensure that you are aware of
+the status of the current task list. You should make use of this tool as often as possible, especially in the following situations:
+- At the beginning of conversations to see what's pending
+- Before starting new tasks to prioritize work
+- When the user asks about previous tasks or plans
+- Whenever you're uncertain about what to do next`;
+    }
+
+    /**
+     * TodoReadツール初期化
+     */
+    initializeTodoReadTool() {
+        this.todoReadTool = {
+            name: "TodoRead",
+            description: "Read the current todo list for the session",
+            userFacingName: "Read Todos",
+            inputSchema: {},
+            isReadOnly: true,
+            // ... other properties from jq
+        };
+    }
+
+    /**
+     * Globツール初期化
+     */
+    initializeGlobTool() {
+        this.globTool = {
+            name: "Glob", // HC1 variable
+            description: `- Fast file pattern matching tool that works with any codebase size
+- Supports glob patterns like "**/*.js" or "src/**/*.ts"
+- Returns matching file paths sorted by modification time` // Ti1 variable
+        };
+    }
+
+    /**
+     * Grepツール説明初期化
+     */
+    initializeGrepToolDescription() {
+        this.grepToolDescription = {
+            toolName: 'Grep', // zC1 variable
+            descriptionGenerator: (availableTools) => {
+                const description = `
+- Fast content search tool that works with any codebase size
+- Searches file contents using regular expressions
+- Supports full regex syntax (eg. "log.*Error", "function\\s+\\w+", etc.)
+- Filter files by pattern with the include parameter (eg. "*.js", "*.{ts,tsx}")
+- Returns file paths with at least one match sorted by modification time
+- Use this tool when you need to find files containing specific patterns`;
+                const hasBashTool = new Set(availableTools.map((tool) => tool.name)).has(this.bashToolName);
+                const ripgrepNote = `
+- If you need to identify/count the number of matches within files, use the ${this.bashToolName} tool with \`rg\` (ripgrep) directly. Do NOT use \`grep\`.`;
+                return hasBashTool ? description + ripgrepNote : description;
+            }
+        };
     }
 
     /**
@@ -423,7 +652,7 @@ const ljQ = 30000;   // Output limit
 /**
  * Bashツール名
  */
-const EC = 'Bash';
+const { co0, VC, XC1 } = require('./todo-management');
 
 module.exports = {
     BashConfiguration,

@@ -3529,7 +3529,88 @@
       - 出力キャプチャ
     - 実装場所: src/sandbox-manager.js (コマンド実行ガイドライン拡張)
 
-- [x] 967-976行解析済み
+- [x] 967-976行解析済み(src/bash-configuration.js)
+- [x] 957-966行解析済み(src/bash-configuration.js)
+- [x] 947-956行解析済み(src/bash-configuration.js)
+- [x] 937-946行解析済み(src/bash-configuration.js)
+- [x] 927-936行解析済み(src/bash-configuration.js)
+- [x] 917-926行解析済み(src/bash-configuration.js)
+- [x] 907-916行解析済み(src/bash-configuration.js)
+- [x] 897-906行解析済み(src/bash-configuration.js)
+- [x] 887-896行解析済み(src/bash-configuration.js)
+- [x] 877-886行解析済み(src/bash-configuration.js)
+- [x] 867-876行解析済み(src/bash-configuration.js)
+- [x] 857-866行解析済み(src/bash-configuration.js)
+- [x] 847-856行解析済み(src/bash-configuration.js)
+- [x] 837-846行解析済み(src/bash-configuration.js)
+  - 処理内容: TodoWriteツールのプロンプト例の開始部分
+    - Reactアプリケーションの最適化タスクでTodoリストを使用するシナリオ
+    - コードベース分析、問題特定、Todoリスト作成、具体的なタスク項目例の提示
+  - 処理内容: TodoWriteツールのプロンプト例の終了部分
+    - パフォーマンス最適化のような複雑なタスクでTodoリストを使用する理由を説明
+    - Todoリストを使用すべきでない例のセクションの開始
+  - 処理内容: TodoWriteツールのプロンプト例の続き
+    - Pythonで「Hello World」を出力する方法を質問する例
+    - 単純な質問応答ではTodoリストが不要であることを示唆
+  - 処理内容: TodoWriteツールのプロンプト例の続き
+    - 1ステップで完了する些細なタスクではTodoリストは不要であると説明
+    - `git status`コマンドについて質問する新しい例の開始部分
+  - 処理内容: TodoWriteツールのプロンプト例の続き
+    - 情報提供のみのリクエストではTodoリストは不要であると説明
+    - 関数へのコメント追加を依頼する新しい例の開始部分
+    - Editツール(${yN})の使用を示唆
+  - 処理内容: TodoWriteツールのプロンプト例の続き
+    - 単純なタスク（コメント追加など）ではTodoリストは不要であると説明
+    - `npm install`実行を依頼する新しい例の開始部分
+  - 処理内容: TodoWriteツールのプロンプト例の終了部分
+    - `npm install`のような単一コマンド実行の例
+    - このような単純なタスクではTodoリストは不要であると説明
+  - 処理内容: TodoWriteツールの詳細プロンプトの続き
+    - タスクの状態定義:
+      - `pending`: 未着手
+      - `in_progress`: 作業中（1つに制限）
+      - `completed`: 完了
+    - タスク管理のルール:
+      - リアルタイムで状態を更新
+      - 完了後すぐにマークする
+  - 処理内容: TodoWriteツールの詳細プロンプトの続き
+    - 進行中のタスクは常に1つに限定
+    - 現在のタスク完了後に新しいタスクを開始
+    - 不要なタスクはリストから削除
+    - タスク完了の厳格な要件:
+      - 完全に達成した場合のみ完了とする
+      - エラーやブロッカーがある場合は進行中のままにする
+      - ブロックされた場合は新しいタスクを作成
+      - テストが失敗している場合は完了としない
+  - 処理内容: TodoWriteツールの詳細プロンプトの続き
+    - 部分的な実装や未解決のエラーが発生した場合にTodoリストを更新することを推奨
+    - タスク分割のガイドライン:
+      - 具体的で実行可能な項目を作成
+      - 複雑なタスクを小さなステップに分割
+      - 明確なタスク名を使用
+    - 積極的なタスク管理の重要性を強調
+  - 処理内容: TodoWriteツールの定義と関連UIコンポーネント
+    - `ZG`: TodoWriteツールの完全な定義
+      - `po0`: "Update the todo list..."という説明文
+      - `mjQ`: `todos`を要求する入力スキーマ
+      - `call`: Todoリストを更新する非同期ジェネレータ
+      - `mapToolResultToToolResultBlockParam`: 次のプロンプトに含めるメッセージを生成
+    - UIコンポーネント群 (`$0`, `Y6`, `EC1`, `no0`, `HQ`): Todoリストの表示、エラー表示、変更のハイライトなどを行うReactコンポーネント
+    - `ao0`: TodoReadツールの詳細なプロンプト
+  - 処理内容: TodoReadツールとGlobツールの定義
+    - `jq`: TodoReadツールの完全な定義
+      - `ro0`: "Read the current todo list for the session"という説明文
+      - `so0`: TodoリストをレンダリングするReactコンポーネント
+      - `djQ`: 入力不要を定義するスキーマ
+      - `call`: Todoリストを取得する非同期ジェネレータ
+      - `mapToolResultToToolResultBlockParam`: 次のプロンプトに含めるメッセージを生成
+    - `HC1`: "Glob"ツール名の定義
+    - `Ti1`: Globツールの説明文
+  - 処理内容: Grepツールの説明文生成機能
+    - `zC1`: "Grep"ツール名の定義
+    - `Pi1`: Grepツールの説明文を生成する関数
+      - 正規表現とglobパターンによるファイル内容検索機能の説明
+      - Bashツールが利用可能な場合に`ripgrep`の使用を推奨する動的メッセージ生成
   - 処理内容: Agent・LSツール・Bash設定・コメント生成システム
     - Agentツール推奨事項
       - オープンエンド検索での使用推奨
@@ -3558,52 +3639,70 @@
       - セキュリティ措置・適切処理の強調
       - ディレクトリ検証手順の指示
     - 実装場所: src/bash-configuration.js (新規作成)
-
-- [x] 957-966行解析済み
-  - 処理内容: Globツール・Grepツール定義・マルチツール機能
-    - Globツール使用ガイドライン
-      - ファイル名パターン検索専用ツール
-      - オープンエンド検索時のAgentツール推奨
-      - 複数ツール同時使用の推奨（一括検索最適化）
-    - Grepツール定義（zC1, Pi1関数）
-      - zC1: ツール名定数("Grep")
-      - Pi1: 動的説明文生成関数
-        - 高速コンテンツ検索機能
-        - 正規表現サポート（例："log.*Error", "function\\s+\\w+"）
-        - includeパラメータによるファイルフィルタリング
-        - 変更時刻順ソート結果
-        - 特定パターン含有ファイル検索
-    - 条件付きripgrep使用指示
-      - Bashツール可用性チェック（new Set().has(EC)）
-      - ripgrep直接使用推奨（ファイル内マッチ数特定用）
-      - grep禁止指示（"Do NOT use `grep`"）
-      - 動的コンテンツ生成（Bashツール利用可能時のみ表示）
-    - マルチツール機能
-      - 単一レスポンスでの複数ツール呼び出し
-      - 推測的な複数検索の一括実行
-      - パフォーマンス最適化のための並列処理
-    - 実装場所: src/grep-tool-manager.js (新規作成)
-  - 処理内容: プロアクティブ行動バランスとコンベンション遵守ガイドライン
-    - プロアクティブ行動のバランス
-      - 原則: ユーザー要求時のみプロアクティブ行動許可
-      - バランスポイント1: 要求された適切なアクション実行（フォローアップ含む）
-      - バランスポイント2: 予期しない自律的行動の回避
-      - 例: アプローチ質問時は回答優先、即座アクション回避
-      - 追加規則: ユーザー要求なしのコード説明サマリー禁止
-    - コンベンション遵守ガイドライン
-      - 原則: ファイル変更前に既存コード規則の理解必須
-      - アプローチ: コードスタイル模倣、既存ライブラリ・ユーティリティ使用、既存パターン遵守
-      - ライブラリ検証: 既知ライブラリでも利用可能性を決して仮定禁止
-      - 検証方法: 隣接ファイル確認、package.json確認、言語別依存ファイル確認
-    - 新規コンポーネント作成ガイドライン
-      - 手順: 既存コンポーネント調査 → パターン特定 → フレームワーク選択 → 命名規則遵守
-      - 考慮事項: フレームワーク選択、命名規則、型付けパターン、ファイル組織、スタイリング
-      - ワークフロー: 調査 → パターン特定 → 一貫した実装
-    - バランス型開発アプローチ
-      - 情報優先: アプローチ質問時は徹底回答を最初に提供
-      - アクション実行: 明示的実装要求時の徹底実装（フォローアップ含む）
-      - 説明ポリシー: 要求時のみ説明提供、作業後は単純停止
-    - ライブラリ検証プロセス
-      - 言語別対応: JavaScript(package.json), Rust(Cargo.toml), Python(requirements.txt)等
-      - 検証ステップ: インポート文スキャン、依存関係確認、使用パターン調査
-    - 実装場所: agent-guidelines.jsのCodeEditingAndSecurityGuidelinesクラス拡張
+- [x] 827-836行解析済み(src/bash-configuration.js)
+  - 処理内容: TodoWriteツールのプロンプト例の続き
+    - 複雑な機能実装におけるTodoリストの使用シナリオ
+    - プロジェクトアーキテクチャに基づいたタスク分解と、Todoリスト使用の理由を説明
+- [x] 817-826行解析済み(src/bash-configuration.js)
+  - 処理内容: TodoWriteツールのプロンプト例の続き
+    - 複数のファイルにわたる複雑なタスクでTodoリストを使用する理由を説明
+    - Eコマースサイトの機能実装をTodoリストに追加する新しい例の開始
+- [x] 807-816行解析済み(src/bash-configuration.js)
+  - 処理内容: TodoWriteツールのプロンプト例の開始部分
+    - プロジェクト全体での関数名変更のような複雑なタスクでTodoリストを使用するシナリオ
+    - タスクの範囲を理解するために検索し、Todoリストを作成する過程を説明
+- [x] 797-806行解析済み(src/bash-configuration.js)
+  - 処理内容: TodoWriteツールのプロンプト例の終了部分
+    - ダークモード追加のような多段階機能でTodoリストを使用する理由を説明
+    - テストとビルドの成功確認を最終タスクとして追加した推論
+- [x] 787-796行解析済み(src/bash-configuration.js)
+  - 処理内容: TodoWriteツールのプロンプト例の開始部分
+    - ダークモード追加のような多段階機能でTodoリストを使用するシナリオ
+    - 具体的なTodoリスト項目例の提示
+- [x] 777-786行解析済み(src/bash-configuration.js)
+  - 処理内容: TodoWriteツールを使用すべきでない状況に関するガイドライン
+    - 単純なタスク、些細なタスク、会話的/情報提供のみのタスクでは使用しない
+    - 些細なタスクは直接実行することを推奨
+- [x] 767-776行解析済み (src/bash-configuration.js)
+  - 処理内容: TodoWriteツールを使用すべき状況に関するガイドライン
+    - 複雑な多段階タスク、ユーザーからの明示的な要求、複数のタスク提供時などに使用
+    - タスクの開始時と完了時のTodoリスト更新ルール
+- [x] 757-766行解析済み(src/todo-management.js)
+  - 処理内容: Todoリスト管理システムのコアロジック
+    - コンテンツポリシーの定義
+    - TodoアイテムのZodスキーマ (`vjQ`, `bjQ`, `gjQ`, `CC1`)
+    - Todoストレージのファイルシステム関数 (`Ri1`, `TO`, `VC`, `XC1`)
+    - Todoソートロジック (`ho0`, `uo0`, `VC1`)
+    - セッション管理関数 (`KC1`, `hjQ`)
+    - ファイル読み書きユーティリティ (`mo0`, `do0`)
+    - `co0`: TodoWriteツールのプロンプトの冒頭部分
+- [x] 747-756行解析済み(src/web-fetch.js)
+  - 処理内容: WebFetchツールの説明とウェブページコンテンツフォーマット関数
+    - WebFetchツールのキャッシュとリダイレクト処理に関する説明
+    - `go0(A,B)`: ウェブページコンテンツをフォーマットする関数
+- [x] 737-746行解析済み(src/web-fetch.js)
+  - 処理内容: WebFetchツールの説明の続きと使用上の注意
+    - モデルの応答としてコンテンツを返す
+    - MCP提供のツールを優先すべきであるという注意点
+    - URLの要件、HTTPからHTTPSへの自動アップグレード
+    - プロンプトの記述内容、読み取り専用であること、結果が要約される可能性
+- [x] 727-736行解析済み(src/telemetry.js, src/ripgrep-integration.js, src/web-fetch.js)
+  - 処理内容: テレメトリー設定、Ripgrep統合、WebFetchツール説明の続き
+    - `telemetryConfigDefaults`, `isTelemetryFeatureEnabled`, `generateTelemetryAttributes`, `initializeTelemetry`, `initializeOpenTelemetryCounters`: OpenTelemetryの構成と初期化
+    - `loadRipgrep`: Ripgrepのロードロジック
+    - `webFetchDescription`: WebFetchツールの追加説明
+- [x] 717-726行解析済み(src/config-utils.js, src/settings-manager.js, src/install-method-detector.js)
+  - 処理内容: 設定の追加/削除、グローバル設定の保存、インストール方法の検出
+    - `addConfigValue`, `removeConfigValue`: 配列ベースの設定値を追加・削除
+    - `saveGlobalConfig`: グローバル設定を保存し、キャッシュをクリア
+    - `globalConfigCache`: グローバル設定のキャッシュオブジェクト
+    - `detectInstallMethod`: 自動更新ステータスに基づいてインストール方法を検出
+    - `getGlobalConfig`: グローバル設定を読み込み、破損時の処理を含む
+- [x] 717-726行解析済み(src/git-utils.js, src/settings-manager.js, src/mcp-config.js, src/telemetry.js, src/utils.js)
+  - 処理内容: Gitトップレベルディレクトリ検出、プロジェクト設定管理、MCP設定管理、ユーザーID/初回起動時間記録、テレメトリーイベントログ
+    - `getGitToplevelDirectory`: Gitリポジトリのトップレベルディレクトリを検出
+    - `getProjectConfig`, `saveProjectConfig`: プロジェクト固有の設定をロード・保存
+    - `isAutoUpdaterDisabled`, `shouldDisplayCostWarning`: 自動更新とコスト警告の表示条件をチェック
+    - `parseMcpJson`, `writeMcpJson`, `getMcpServers`: MCPサーバー設定の解析、書き込み、ロード
+    - `getUserId`, `recordFirstStartTime`: ユーザーIDの生成と初回起動時間の記録
+    - `logTelemetryEvent`: テレメトリーイベントのログ記録
