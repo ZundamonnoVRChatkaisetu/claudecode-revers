@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(node:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "gemini-cli",
+    "chrome-mcp-stdio",
+    "Windows-MCP"
+  ]
+}

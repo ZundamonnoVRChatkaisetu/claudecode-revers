@@ -1,0 +1,8 @@
+.mcp.json
+node_modules/
+dist/
+sdk.d.ts
+sdk.mjs
+yoga.wasm
+scripts/
+vendor/
