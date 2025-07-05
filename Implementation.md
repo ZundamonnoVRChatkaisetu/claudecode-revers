@@ -3737,3 +3737,139 @@
     - UIテーマシステム（ThemeContext）
     - UnorderedList、MultiSelect、OrderedListコンポーネント
   - 実装場所: src/config-management.js, src/otel-setup.js, src/config-error-dialog.js, src/ui-theme.js, src/unordered-list.js, src/multi-select.js, src/ordered-list.js (新規作成)
+- [x] 687-706行解析済み (src/shell-snapshot.js, src/system-info.js, src/config-schema.js, src/env-utils.js, src/config-paths.js, src/command-runner.js)
+  - 処理内容: シェルスナップショット作成とシステム情報収集
+    - シェルスナップショット作成スクリプト（行687-701）
+      - 環境変数のPOSIXフォーマット変換
+      - シェルオプション設定（posix、restricted無効化など）
+      - エイリアスとファンクションのクリア
+      - エイリアスの再設定（上限1000件）
+      - ripgrep (rg)の存在チェックとエイリアス設定
+      - PATH環境変数のエクスポート
+    - `_U0`関数: 実行可能ファイルのアクセス権チェック
+      - accessSyncによるX_OKチェック
+      - --versionコマンドによるフォールバック
+    - `kU0`関数（メモ化）: 適切なシェルの検出
+      - whichコマンドによるシェル検索
+      - SHELL環境変数からのPOSIXシェル判定
+      - 優先順位に基づくシェル選択（bash/zsh）
+      - 実行可能性の確認
+    - `ABQ`関数: シェルスナップショットの作成
+      - 一時ファイルへのスナップショット保存
+      - シェルの妥当性チェック
+      - execによる非同期実行
+      - メトリクス収集（成功/失敗）
+    - `Xu1`（メモ化）: シェル情報の取得
+    - `BBQ`関数: バックグラウンドBashコマンド実行
+      - 入力リダイレクト（</dev/null）
+      - パイプライン処理の特別対応
+      - システムBashモードのサポート
+      - 作業ディレクトリの追跡と更新
+    - コマンド実行関数（G2、N3、ED）
+      - タイムアウト処理（デフォルト10分）
+      - AbortSignalサポート
+      - エラー時の出力保持オプション
+    - 設定パス関数（p9、GG）
+      - CLAUDE_CONFIG_DIR環境変数サポート
+      - 新旧設定ファイル形式の互換性
+    - システム情報収集（aA オブジェクト）
+      - getIsDocker: Dockerコンテナ検出
+      - hasInternetAccess: インターネット接続確認
+      - terminal: ターミナル種類の検出
+      - getPackageManagers: npm/yarn/pnpm検出
+      - getRuntimes: node/deno/bun検出
+      - isWslEnvironment: WSL環境検出
+    - 環境変数ユーティリティ
+      - eZ: ブール値評価（1/true/yes/on）
+      - dU0: 環境変数配列のパース
+      - リージョン設定関数（AWS、Vertex AI）
+    - 設定スキーマ定義
+      - MCPサーバー転送タイプ（stdio、sse、http等）
+      - Zodスキーマによるバリデーション
+      - プロジェクト/グローバル設定のデフォルト値
+      - 配列型設定のマイグレーション警告
+  - 実装場所: src/shell-snapshot.js, src/system-info.js, src/config-schema.js, src/env-utils.js, src/config-paths.js, src/command-runner.js (新規作成)
+- [x] 667-686行解析済み (src/shell-function-encoder.js, src/shell-options-manager.js, src/snapshot-file-manager.js, src/shell-snapshot-generator.js)
+  - 処理内容: シェル関数エンコードとスナップショットファイル管理の詳細実装
+    - シェル関数のbase64エンコード処理（行667-671）
+      - `encoded_func`: declare -fで取得した関数定義をbase64エンコード
+      - `Cu1`: クォート文字（"）の定数
+      - evalコマンドでラップしてエラー出力を抑制（> /dev/null 2>&1）
+      - 関数の存在チェック（declare -F）
+      - base64デコードによる復元処理
+    - シェルオプションの保存と復元（行673-677）
+      - `shopt -p`: bashの拡張オプション設定を保存（上限1000件）
+      - `set -o | grep "on"`: 有効なsetオプションを抽出してset -o形式で保存
+      - `shopt -s expand_aliases`: エイリアス展開を有効化
+      - POSIX標準オプションとbash固有オプションの分別管理
+    - スナップショットファイル初期化（行677-686）
+      - ファイルヘッダーの作成（"# Snapshot file"）
+      - エイリアス無効化の警告コメント
+      - 関数定義時のエイリアス干渉回避の説明
+      - unalias -aによる全エイリアス削除
+    - 復元された変数名と機能
+      - `SNAPSHOT_FILE`: スナップショットファイルパス
+      - `func`: 処理対象の関数名
+      - `encoded_func`: base64エンコードされた関数定義
+      - クォート文字の適切な処理
+    - 実装クラスと機能
+      - ShellFunctionEncoder: 関数のエンコード・デコード
+      - ShellOptionsManager: シェルオプションの管理
+      - SnapshotFileManager: ファイル作成・ヘッダー管理
+      - ShellSnapshotGenerator: 統合的なスナップショット生成
+    - セキュリティ対応
+      - 問題のある環境変数のスキップ
+      - 関数定義の構文検証
+      - base64エンコードによる特殊文字の安全な処理
+      - evalコマンドのエラー出力抑制
+    - パフォーマンス最適化
+      - 各種制限（関数1000件、エイリアス1000件、オプション1000件）
+      - 一時ファイルの自動クリーンアップ
+      - メモ化による高速化
+  - 実装場所: src/shell-function-encoder.js, src/shell-options-manager.js, src/snapshot-file-manager.js, src/shell-snapshot-generator.js (新規作成)
+- [x] 647-666行解析済み (src/shell-type-detector.js, src/zsh-handler.js, src/bash-handler.js, src/shell-handler-factory.js)
+  - 処理内容: シェル種別判定と分岐処理の実装
+    - シェル種別分岐処理（行647-666）
+      - zsh用処理（行647-658）：
+        - `typeset -f > /dev/null 2>&1`: 関数の自動読み込み強制実行
+        - `typeset +f | grep -vE '^(_|__)'`: ユーザー定義関数の抽出（システム関数除外）
+        - `typeset -f "$func"`: 関数定義の直接書き出し
+        - `setopt | sed 's/^/setopt /' | head -n 1000`: zshオプション設定の保存
+      - bash等用処理開始（行659-666）：
+        - `declare -f > /dev/null 2>&1`: 関数の自動読み込み強制実行
+        - `declare -F | cut -d' ' -f3 | grep -vE '^(_|__)'`: bash関数名の抽出（システム関数除外）
+        - base64エンコード処理への準備
+    - 復元された変数名と条件判定
+      - `I`: 処理分岐の条件変数（シェルタイプ判定）
+      - `func`: 処理対象の関数名
+      - システム関数パターン: `^(_|__)` (アンダースコア開始の除外)
+    - 実装クラスと機能
+      - ShellTypeDetector: シェル種別の自動検出
+        - SHELL環境変数とバージョン変数による判定
+        - 実行時テストによる詳細判定（$ZSH_VERSION、$BASH_VERSION等）
+        - 機能サポート表の提供（typeset、shopt、declare等）
+      - ZshHandler: zsh固有処理の実装
+        - typeset命令による関数・変数管理
+        - setoptによるオプション設定
+        - 拡張glob、履歴管理等の高度機能
+        - autoload機能との連携
+      - BashHandler: bash固有処理の実装
+        - declare命令による関数・変数管理
+        - shoptとset -oによるオプション設定
+        - base64エンコードによる関数保存
+        - POSIX互換性の確保
+      - ShellHandlerFactory: 統合管理
+        - 自動シェル検出とハンドラー選択
+        - 条件分岐スクリプトの生成
+        - 互換性チェック機能
+    - セキュリティとパフォーマンス
+      - システム関数の適切な除外（セキュリティ）
+      - 各シェルの制限値設定（1000件上限）
+      - エラーハンドリングとフォールバック処理
+      - 関数存在チェック（declare -F）による安全性確保
+    - シェル互換性対応
+      - zsh: typeset、setopt中心の処理
+      - bash: declare、shopt中心の処理
+      - POSIX sh: 基本機能のみ対応
+      - 未知シェル: bashハンドラーでフォールバック
+  - 実装場所: src/shell-type-detector.js, src/zsh-handler.js, src/bash-handler.js, src/shell-handler-factory.js (新規作成)

@@ -186,3 +186,6 @@
 - [x] 747-756行解析済み(src/web-fetch.js)
 - [x] 727-746行解析済み (src/telemetry-config.js, src/initialization.js, src/ripgrep-loader.js)
 - [x] 707-726行解析済み (src/config-management.js, src/otel-setup.js, src/config-error-dialog.js, src/ui-theme.js, src/unordered-list.js, src/multi-select.js, src/ordered-list.js)
+- [x] 687-706行解析済み (src/shell-snapshot.js, src/system-info.js, src/config-schema.js, src/env-utils.js, src/config-paths.js, src/command-runner.js)
+- [x] 667-686行解析済み (src/shell-function-encoder.js, src/shell-options-manager.js, src/snapshot-file-manager.js, src/shell-snapshot-generator.js)
+- [x] 647-666行解析済み (src/shell-type-detector.js, src/zsh-handler.js, src/bash-handler.js, src/shell-handler-factory.js)
