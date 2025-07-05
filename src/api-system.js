@@ -138,40 +138,23 @@ function cU(messages) {
 /**
  * レート制限管理
  */
-function checkRateLimitForAccount() {  
-    const config = WA(); // 設定取得  
-    const oauthAccount = config.oauthAccount;  
-      
-    // OAuth認証済みかつレート制限免除フラグがある場合  
-    if (oauthAccount?.rateLimitExempt) {  
-        return {  
-            status: "exempt",  
-            unifiedRateLimitFallbackAvailable: true  
-        };  
-    }  
-      
-    return rateLimitStatus; // 通常のレート制限状態を返す  
-}  
+let rateLimitStatus = {
+    status: "allowed",
+    unifiedRateLimitFallbackAvailable: false
+};
 
-// SR2関数を拡張  
-function SR2(status) {  
-    // アカウントベースのチェックを追加  
-    const accountStatus = checkRateLimitForAccount();  
-    if (accountStatus.status === "exempt") {  
-        rateLimitStatus = accountStatus;  
-    } else {  
-        rateLimitStatus = status;  
-    }  
-      
-    rateLimitCallbacks.forEach((callback) => callback(rateLimitStatus));  
-      
-    const hours = Math.round((status.resetsAt ? status.resetsAt - Date.now() / 1000 : 0) / 3600);  
-    console.log('Rate limit status changed:', {  
-        status: rateLimitStatus.status,  
-        unifiedRateLimitFallbackAvailable: rateLimitStatus.unifiedRateLimitFallbackAvailable,  
-        hoursTillReset: hours,  
-        accountExempt: accountStatus.status === "exempt"  
-    });  
+const rateLimitCallbacks = new Set();
+
+function SR2(status) {
+    rateLimitStatus = status;
+    rateLimitCallbacks.forEach((callback) => callback(status));
+    
+    const hours = Math.round((status.resetsAt ? status.resetsAt - Date.now() / 1000 : 0) / 3600);
+    console.log('Rate limit status changed:', {
+        status: status.status,
+        unifiedRateLimitFallbackAvailable: status.unifiedRateLimitFallbackAvailable,
+        hoursTillReset: hours
+    });
 }
 
 /**

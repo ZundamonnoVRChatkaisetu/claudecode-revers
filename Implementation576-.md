@@ -1,0 +1,383 @@
+- [x] 557-576行解析済み (src/ui-framework.js)
+  **処理内容詳細:**
+  - Inkフレームワーク UI コンポーネント群実装
+  - Text表示とBox容器コンポーネント
+  - 最小マッチング・グロブパターン処理（minimatch）
+  - パス処理・環境設定ユーティリティ
+  - キーボード入力処理・イベントハンドリング
+  - エラー表示・デバッグ機能
+  - プラットフォーム対応（Windows/POSIX）
+  - カーソル表示制御
+  - レンダリング・レイアウト計算
+  - テーマシステム（色・スタイル）
+  - フォーカス管理・ナビゲーション
+  - リスト表示・静的コンテンツ処理
+
+- [x] 537-556行解析済み (src/yoga-layout.js)
+  **処理内容詳細:**
+  - WASMモジュール読み込み・初期化（Yogaライブラリ）
+  - ANSIエスケープシーケンス処理・色変換
+  - 文字列操作・トリミング・幅計算
+  - 文字列ラッピング・切り詰め処理
+  - 全角・半角文字幅計算
+  - Flexboxレイアウトエンジン（Node.js用Yoga）
+  - DOM要素・ノード管理
+  - スタイル適用・レイアウト計算
+  - 位置・マージン・パディング設定
+  - ディスプレイ・ボーダー・ギャップ設定
+
+- [x] 517-536行解析済み (src/commander-system.js)
+  **処理内容詳細:**
+  - Commander.js CLIフレームワーク機能
+  - オプション処理・バリデーション・競合チェック
+  - サブコマンド実行・派遣・管理
+  - 引数解析・処理・必須チェック
+  - エラーハンドリング・メッセージ表示
+  - ヘルプ表示・バージョン表示・使用法
+  - 環境変数からのオプション読み込み
+  - 不明オプション・コマンドの処理
+  - スクリプトパス・実行ディレクトリ管理
+  - コマンドエイリアス・説明・要約設定
+
+- [x] 497-516行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **HTML/Markdown変換エンジン**
+    - Turndown HTMLからMarkdown変換ライブラリ実装
+    - DOM要素のMarkdown形式変換・構造保持
+    - テーブル・リスト・コードブロック対応
+    - カスタム変換ルール設定可能
+  - **テキスト処理・フォーマット機能**
+    - ANSIエスケープシーケンス削除・色情報処理
+    - 文字列幅計算（全角・半角・Unicode対応）
+    - 絵文字・特殊文字・Unicode文字列の正確な処理
+    - 文字列パディング・切り詰め・トランケート機能
+    - 文字装飾・スタイル機能（zalgo、アスキーアート等）
+  - **CLI表示・UI機能群**
+    - 色付けライブラリ・カラーサポート自動検出
+    - ターミナル環境対応・プラットフォーム判定
+    - テーブル描画・セル結合・列幅調整処理
+    - プログレスバー・スピナー・ローディング表示
+    - CLIテキスト表示・フォーマット・整列機能
+  - **デバッグ・ユーティリティ**
+    - 包括的デバッグ・ロギングシステム
+    - エラー情報の詳細出力・トレース機能
+    - パフォーマンス計測・実行時間監視
+    - 文字列操作・変換の検証・テスト支援
+
+- [x] 477-496行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **HTML変換ルール追加実装**
+    - `horizontalRule`（水平線）: `<hr>`→`---`変換
+    - `inlineLink`（インラインリンク）: `<a>`→`[text](url "title")`変換
+      - 括弧エスケープ処理（`()` → `\(\)`）
+      - タイトル属性の引用符エスケープ処理
+    - `referenceLink`（参照リンク）: `<a>`→参照形式変換
+      - `collapsed`/`shortcut`/`numbered`スタイル対応
+      - 参照番号自動生成・参照定義末尾追加機能
+    - `emphasis`（強調）: `<em>/<i>`→`*text*`変換
+    - `strong`（太字）: `<strong>/<b>`→`**text**`変換
+    - `code`（インラインコード）: `<code>`→バッククォート変換
+      - 改行・復帰文字のスペース正規化
+      - バッククォート連続回避処理
+      - 適切な前後スペース挿入
+    - `image`（画像）: `<img>`→`![alt](src "title")`変換
+  - **ルールエンジン`zk2`クラス実装**
+    - ルール配列管理（`array`、`_keep`、`_remove`）
+    - ノード毎ルール検索（`forNode`メソッド）
+    - フィルター条件マッチング（文字列・配列・関数対応）
+    - ブランク・デフォルト・削除ルールの階層処理
+  - **DOM操作・ホワイトスペース処理**
+    - `DP6`関数によるホワイトスペース正規化
+    - 連続スペース・改行・タブの統合処理
+    - ブロック要素周辺空白削除
+    - ネスト要素の空白継承処理
+    - `yBA`関数によるノード削除処理
+    - `Jk2`関数による次ノード取得（Pre要素考慮）
+  - **Turndownメインクラス`PU1`初期化**
+    - デフォルトオプション設定
+      - `headingStyle`: "setext"（下線形式ヘッダー）
+      - `hr`: "* * *"（水平線スタイル）
+      - `bulletListMarker`: "*"（箇条書きマーカー）
+      - `codeBlockStyle`: "indented"（インデント形式コード）
+      - `fence`: "```"（コードフェンス）
+      - `emDelimiter`: "_"（強調デリミター）
+      - `strongDelimiter`: "**"（太字デリミター）
+      - `linkStyle`: "inlined"（インラインリンク）
+      - `linkReferenceStyle`: "full"（完全参照リンク）
+      - `br`: "  "（改行マーカー）
+      - `preformattedCode`: false（事前フォーマット無効）
+    - 置換関数定義（ブランク・保持・デフォルト要素）
+
+- [x] 457-476行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **リスト変換ルール実装**
+    - `list`（リスト）: `<ul>/<ol>`→Markdown変換
+      - 親要素が`<li>`で最後の子要素の場合は改行なし（ネストリスト対応）
+      - それ以外は前後に空行追加（独立リスト）
+    - `listItem`（リストアイテム）: `<li>`→Markdown変換
+      - 前後改行削除・内部改行のインデント処理（4スペース）
+      - 箇条書きマーカー（`bulletListMarker`：デフォルト`*`）処理
+      - 番号付きリスト（`<ol>`）の場合：
+        - `start`属性考慮の連番生成
+        - `Array.prototype.indexOf.call`でインデックス取得
+        - `(start + index)` または `(index + 1)` + `.  `形式
+      - 次の兄弟要素存在時の改行調整
+  - **コードブロック変換ルール実装**
+    - `indentedCodeBlock`（インデント形式）: `<pre><code>`→インデント形式変換
+      - `codeBlockStyle: "indented"`時に適用
+      - `<pre>`直下の`<code>`要素のみ対象
+      - 各行に4スペースインデント追加（`textContent.replace(/\n/g, "\n    ")`）
+      - 前後に空行追加
+    - `fencedCodeBlock`（フェンス形式）: `<pre><code>`→フェンス形式変換
+      - `codeBlockStyle: "fenced"`時に適用
+      - `class`属性から`language-xxx`パターンで言語抽出
+      - コンテンツ内のバッククォート連続を検出
+      - 動的フェンス長調整（内容より長いフェンス生成）
+      - `xBA`ヘルパー関数でフェンス文字列生成
+      - 言語指定付きコードブロック出力（```language）
+
+- [x] 437-456行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **DOMライブラリ基本関数実装**
+    - `xBA`（文字繰り返し）: `Array(length+1).join(char)`で文字列繰り返し
+    - `sT6`（先頭改行削除）: `replace(/^\n*/,"")`で先頭改行除去
+    - `oT6`（末尾改行削除）: 末尾から改行文字を検索して削除
+  - **HTML要素分類システム**
+    - `tT6`配列: ブロック要素リスト定義
+      - ADDRESS, ARTICLE, ASIDE, AUDIO, BLOCKQUOTE, BODY, CANVAS等
+    - `fBA`関数: ブロック要素判定（`vBA`関数使用）
+    - `Vk2`配列: Void要素（自己終了タグ）リスト定義
+      - AREA, BASE, BR, COL, COMMAND, EMBED, HR, IMG等
+    - `Kk2`関数: Void要素判定
+    - `Ek2`配列: 特殊要素リスト（A, TABLE, THEAD等）
+    - `vBA`/`Hk2`ヘルパー関数: 配列内検索・要素判定
+  - **基本HTML→Markdown変換ルール（RZ）実装**
+    - `paragraph`（段落）: `<p>`→前後空行付きMarkdown変換
+    - `lineBreak`（改行）: `<br>`→`br`オプション + `\n`変換
+    - `heading`（ヘッダー）: `<h1>-<h6>`→ヘッダー変換
+      - `setext`スタイル: h1は`=`下線、h2は`-`下線（レベル3未満）
+      - `atx`スタイル: `#`の数でレベル表示（レベル3以上）
+      - `xBA`関数で下線文字繰り返し生成
+    - `blockquote`（引用）: `<blockquote>`→引用ブロック変換
+      - 前後改行削除（`replace(/^\n+|\n+$/g, "")`）
+      - 各行先頭に`> `追加（`replace(/^/gm, "> ")`）
+
+- [x] 427-436行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **Lodashライブラリテンプレートエンジン実装**
+    - テンプレート変数定義：`var __t, __p = ''`（出力バッファ）
+    - エスケープ機能：`__e = _.escape`（JA条件で有効化）
+    - 配列結合機能：`__j = Array.prototype.join`（SA条件で有効化）
+    - print関数：`function print() { __p += __j.call(arguments, '') }`
+  - **動的JavaScript実行・コンパイル機能**
+    - `EQ=Nx(function(){return vB(k1,XB+"return "+w0).apply(A,r1)})`
+    - エラー処理：`if(EQ.source=w0,vG(EQ))throw EQ`
+    - テンプレート関数返却機能
+  - **文字列操作・変換関数群実装**
+    - `RV`（toLowerCase）: 文字列小文字変換
+    - `oP`（toUpperCase）: 文字列大文字変換
+    - `FH`（trim）: 前後空白除去（カスタム文字指定対応）
+    - `IB1`（trimEnd）: 末尾空白除去機能
+    - `rN1`（trimStart）: 先頭空白除去機能
+    - `sN1`（truncate）: 文字列切り詰め・省略機能
+  - **Lodash API公開設定・プロトタイプ拡張**
+    - `w1.after=k6,w1.ary=w6,w1.assign=sp`等のAPI配布
+    - 配列・オブジェクト操作関数（chunk,compact,concat等）
+    - 関数操作（curry,debounce,throttle等）
+    - 文字列処理（camelCase,kebabCase,snakeCase等）
+    - 数学計算（add,divide,multiply,subtract等）
+    - プロトタイプメソッド拡張（chain,at,commit等）
+
+- [x] 417-426行解析済み (src/html-markdown-converter.js)
+  **処理内容詳細:**
+  - **JavaScript テンプレート動的コード生成機能**
+    - 条件分岐処理：`if(cZ)SA=!0,w0+=`で条件コード追加
+    - コード文字列構築：`__p += '`セクション追加
+    - 変数展開処理：`((__t = (`+Z6+`)) == null ? '' : __t)`
+    - エスケープ無効時の出力処理（__t変数使用）
+    - テンプレート処理長計算：`F0=kW+Z9.length`
+  - **オブジェクト変数検証・with文生成**
+    - 変数名取得：`$.variable`から変数名抽出
+    - with文生成（変数名未指定時）：`with (obj) { ... }`
+    - 危険変数チェック：`xA.test(G9)`で変数名検証
+    - エラー投出：`throw new iB(G)`で不正変数時エラー
+  - **テンプレート文字列最適化・関数構築**
+    - 置換処理：`u2`,`K6`,`S3`正規表現による最適化
+    - 関数定義構築：`function(`+変数名+`) { ... }`
+    - オブジェクト初期化：`obj || (obj = {})`（変数名無指定時）
+    - デフォルト変数名設定：`"obj"`使用
+  - **エスケープ機能・セキュリティ処理**
+    - エスケープフラグ：`SA`変数によるエスケープ制御
+    - 文字列置換による正規化処理
+    - with文による安全性確保
+    - テンプレート実行コンテキスト制御
+
+- [x] 407-416行解析済み (src/image-processing.js)
+  **処理内容詳細:**
+  - **Sharp画像処理ライブラリ実装**
+    - デバッグログ機能：`gE6.debuglog("sharp")`でログ出力
+    - Duplex ストリーム継承：`IAA.Duplex`で双方向ストリーム実装
+    - 画像処理オプション初期化：オフセット・サイズ・回転・拡張設定
+    - 色空間変換・ガンマ補正・明度調整オプション
+  - **画像処理コアオプション設定**
+    - 位置設定：`topOffsetPre`,`leftOffsetPre`,`widthPre`,`heightPre`
+    - リサイズ設定：`canvas:"crop"`,`position:0`,`resizeBackground`
+    - 回転・変形：`angle`,`rotationAngle`,`rotationBackground`,`flip`,`flop`
+    - 拡張設定：`extendTop`,`extendBottom`,`extendLeft`,`extendRight`
+  - **画像フィルター・エフェクト機能**
+    - 補間設定：`kernel:"lanczos3"`,`fastShrinkOnLoad:!0`
+    - 色調調整：`tint`,`flatten`,`flattenBackground`,`negate`,`negateAlpha`
+    - フィルター効果：`medianSize`,`blurSigma`,`sharpenSigma`,`threshold`
+    - 正規化：`normalise`,`normaliseLower`,`normaliseUpper`,`clahe`設定
+  - **出力フォーマット・品質制御**
+    - JPEG設定：`jpegQuality:80`,`jpegProgressive`,`jpegChromaSubsampling`
+    - PNG設定：`pngCompressionLevel:6`,`pngAdaptiveFiltering`,`pngPalette`
+    - WebP設定：`webpQuality:80`,`webpLossless`,`webpEffort:4`
+    - TIFF設定：`tiffCompression:"jpeg"`,`tiffPredictor:"horizontal"`
+  - **ストリーム処理・メタデータ管理**
+    - ストリーム入力検出：`_isStreamInput()`メソッド
+    - バッファ統合：`_flattenBufferIn()`でストリームバッファ結合
+    - メタデータ保持：`keepMetadata`,`withExif`,`withIccProfile`
+    - タイムアウト・キューリスナー：`timeoutSeconds`,`queueListener`
+
+- [x] 397-406行解析済み (src/security-filters.js)
+  **処理内容詳細:**
+  - **Google Cloud Platform認証システム**
+    - GCE(Google Compute Engine)メタデータURL定義
+    - クラス`re1`によるGoogle認証管理システム
+    - 認証情報キャッシュ：`cachedCredential`,`jsonContent`,`_cachedProjectId`
+    - クライアントオプション・スコープ・APIキー管理
+  - **認証設定・初期化処理**
+    - プロジェクトID管理：`_cachedProjectId`,`keyFilename`,`scopes`
+    - 認証クライアント：`clientOptions`,`jsonContent`,`apiKey`
+    - APIキー・認証情報排他制御エラー処理
+    - ユニバースドメイン設定：`universeDomain`
+  - **認証メソッド・プロジェクトID取得**
+    - Gapic JWT値設定：`setGapicJWTValues`メソッド
+    - プロジェクトID取得：`getProjectId`,`getProjectIdAsync`
+    - プロジェクトID検索・キャッシュ：`findAndCacheProjectId`
+    - エラー処理：`NO_PROJECT_ID_FOUND`例外
+  - **XSSフィルターライブラリ実装**
+    - CSS プロパティホワイトリスト：`jw2()`でCSS安全プロパティ定義
+    - HTMLタグ属性フィルター：`pw2()`でHTMLタグ許可属性定義
+    - XSS攻撃対策：`javascript:`スクリプト実行防止
+    - CSS値サニタイゼーション：`ZY6()`で危険値除去
+  - **HTML/CSSサニタイゼーション機能**
+    - ユーティリティ関数：`indexOf`,`forEach`,`trim`,`spaceIndex`
+    - CSS構文解析：コメント除去・プロパティ値検証
+    - HTMLタグ許可リスト：`a`,`img`,`table`等安全タグ定義
+    - 属性フィルタリング：`src`,`href`,`alt`等安全属性のみ許可
+      - 前後空行追加
+
+- [x] 387-396行解析済み (src/aws-auth-manager.js, src/google-auth-manager.js)
+  **処理内容詳細:**
+  - **AWS署名認証システム (qU2)**
+    - AWSリクエスト署名生成：`amzDate`,`authorizationHeader`,`canonicalQuerystring`
+    - AWS認証ヘッダー構築：`Credential`,`SignedHeaders`,`Signature`
+    -暗号化処理：`crypto.sha256DigestHex`,`LZ6`,`x11`暗号化関数
+    - アクセスキー管理：`accessKeyId`,`secretAccessKey`,`region`
+  - **AWSセキュリティ認証情報サプライヤー (NU2)**
+    - IMDSv2セッショントークン管理：`imdsV2SessionTokenUrl`,`x-aws-ec2-metadata-token`
+    - リージョン取得：`getAwsRegion`,`regionUrl`,`AWS_REGION`,`AWS_DEFAULT_REGION`
+    - セキュリティ認証情報取得：`getAwsSecurityCredentials`,`AccessKeyId`,`SecretAccessKey`,`Token`
+    - エラー処理：認証情報ソース不足エラー
+  - **AWSクライアント (f11)**
+    - 外部アカウント認証クライアント：`BaseExternalAccountClient`継承
+    - 認証情報サプライヤー：`awsSecurityCredentialsSupplier`,`programmatic`/`aws`タイプ
+    - リージョナル認証確認URL：`regional_cred_verification_url`
+    - 環境ID検証：`environment_id`形式`aws1`検証
+  - **Google認証例外メッセージ定義**
+    - APIキー・認証情報排他制御：`API_KEY_WITH_CREDENTIALS`
+    - プロジェクトID検出失敗：`NO_PROJECT_ID_FOUND`
+    - 認証情報検出失敗：`NO_CREDENTIALS_FOUND`
+    - ADC読み込み失敗：`NO_ADC_FOUND`
+    - ユニバースドメイン検出失敗：`NO_UNIVERSE_DOMAIN_FOUND`
+
+- [x] 377-386行解析済み (src/json-processor.js)
+  **処理内容詳細:**
+  - **JSON処理システム (PE2)**
+    - JSON.stringify関数の拡張モジュール：数値型インデント、文字列インデント対応
+    - 復元関数：`replacer`パラメーター対応、可読性向上改行処理
+    - オブジェクト最適化：プロパティ多重ループ防止、メモリリーク対策
+  - **BigIntセキュリティJSONパーサー (yE2)**
+    - セキュリティ正規表現：`__proto__`検出(zD6)、`constructor`検出(UD6)
+    - BigIntオプション：`strict`,`storeAsString`,`alwaysParseAsBig`,`useNativeBigInt`
+    - プロトタイプ汚染攻撃対策：`protoAction`,`constructorAction`(error/ignore/preserve)
+    - 数値精度管理：15桁超過時BigInt変換、無限値エラー処理
+  - **GCP環境検出システム (_t1)**
+    - Google Cloud Serverless検出：`CLOUD_RUN_JOB`,`FUNCTION_NAME`,`K_SERVICE`
+    - Google Compute Engine検出：`/sys/class/dmi/id/bios_vendor`BIOS情報読み取り
+    - MACアドレス検証：`42:01`接頭語パターン(ND6)でGoogleインスタンス判定
+    - GCPレジデンシー統合処理：`detectGCPResidency`関数
+  - **コンソール色彩管理 (lE2)**
+    - TTY検出と色深度チェック：`getColorDepth()`結果による色有効化
+    - ANSIエスケープシーケンス：`reset`,`bright`,`dim`,`red`,`green`,`yellow`,`blue`,`magenta`,`cyan`,`white`,`grey`
+    - リアルタイム色彩管理：`refresh()`メソッドでstderr状態更新
+  - **高度ログシステム (oE2)**
+    - ログレベル定義：`DEFAULT`,`DEBUG`,`INFO`,`WARNING`,`ERROR`
+    - フィルターシステム：ワイルドカードパターン`*`、正規表現変換
+    - イベントエミッター継承：`AdhocDebugLogger`クラスで非同期ログ処理
+    - バックエンド切り替え：`getNodeBackend`,`getDebugBackend`,`getStructuredBackend`
+
+- [x] 367-376行解析済み (src/date-time-processor.js, src/bedrock-runtime-core.js)
+  **処理内容詳細:**
+  - **スタックトレース警告システム (F11)**
+    - コンソール警告出力：`warn:console.warn`メソッドでスタックトレース表示
+    - スタックトレースフィルター：5行制限、`stackTraceWarning`除外処理
+  - **UTC日時処理システム (xY2)**
+    - 曜日配列：`["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]`
+    - 月名配列：`["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]`
+    - UTC文字列生成：`dateToUtcString`関数でGMT形式出力
+    - ゼロパディング：10未満の数値に`0`接頭語追加
+  - **RFC-3339日時パーサー (yA6)**
+    - 正規表現：`(\d{4})-(\d{2})-(\d{2})[tT](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?[zZ]`
+    - ISO8601日時形式解析：年月日時分秒、ミリ秒対応
+    - タイムゾーン処理：`Z`(UTC)、オフセット`[-+]\d{2}:\d{2}`対応
+  - **RFC-7231日時パーサー (gA6)**
+    - HTTPヘッダー日時形式：`Mon, 01 Jan 2024 00:00:00 GMT`
+    - 複数フォーマット対応：`fA6`,`vA6`,`bA6`正規表現
+    - 曜日名検証：英語曜日名、省略形・完全形対応
+  - **エポックタイムスタンプ処理 (hA6)**
+    - 数値・文字列・オブジェクト型対応：`number`,`string`,`object.tag`
+    - 無限値・非数値エラー処理：`NaN`,`Infinity`,`-Infinity`検出
+    - ミリ秒変換：`Math.round(timestamp*1000)`でDateオブジェクト生成
+  - **Bedrock Runtimeコアシステム**
+    - アクセス拒否例外：`AccessDeniedException`
+    - ガードレールコマンド：`ApplyGuardrailCommand`
+    - 非同期呼び出し：`AsyncInvokeStatus`,`AsyncInvokeOutputDataConfig`
+    - コンテンツブロック：`ContentBlock`,`ContentBlockDelta`クラス
+    - UUIDライブラリ統合：`v1`,`v3`,`v4`,`v5`バージョン対応
+
+- [x] 357-366行解析済み (src/typescript-utilities.js, src/data-processing-core.js)
+  **処理内容詳細:**
+  - **TypeScriptライブラリユーティリティ (TSLIB)**
+    - クラス継承：`__extends`関数でプロトタイプチェーン設定
+    - オブジェクトマージ：`__assign`でプロパティコピー
+    - 分割代入：`__rest`でオブジェクトプロパティ除外
+    - デコレーター：`__decorate`,`__param`,`__metadata`サポート
+    - 非同期処理：`__awaiter`,`__generator`,`__asyncGenerator`
+    - モジュールシステム：`__exportStar`,`__importStar`,`__importDefault`
+  - **Node.jsバッファー処理システム (AD2)**
+    - UTF-8エンコード：`Buffer.from(input, 'utf8')`で文字列変換
+    - バイト配列変換：`Uint8Array`への統一処理
+    - ArrayBuffer判定：`isArrayBuffer`関数で型検証
+  - **CRC32チェックサム算出 (rX1)**
+    - 32ビットCRCテーブル：256エントリーの事前算出テーブル
+    - ストリーミング更新：`update`メソッドで逐次処理
+    - AWS仕様対応：`AwsCrc32`クラスでAWSサービス用CRC算出
+  - **16進数処理システム ($D2)**
+    - エンコード：バイト配列から小文字の16進数文字列へ変換
+    - デコード：16進数文字列からバイト配列へ変換
+    - エラー処理：偶数長検証、無効文字検出
+  - **EventStreamコーデック (vD2)**
+    - バイナリメッセージフォーマット：4バイト長+4バイトヘッダー長+CRC32
+    - ヘッダーマーシャラー：`HeaderMarshaller`でヘッダーシリアライズ
+    - ストリームデコーダー：`MessageDecoderStream`,`MessageEncoderStream`
+    - Int64処理：64ビット整数をバイト配列で表現
+  - **Base64エンコーディング (Fs1)**
+    - エンコード：文字列またはUint8ArrayからBase64文字列へ
+    - デコード：Base64文字列からUint8Arrayへ
+    - パディング検証：`=`文字の正当性チェック
+  - **ミドルウェアスタックシステム (wI2)**
+    - スタック構築：`constructStack`関数でミドルウェアチェーン構築
+    - エイリアシング：名前とエイリアス管理機能
