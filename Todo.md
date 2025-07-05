@@ -189,3 +189,6 @@
 - [x] 687-706行解析済み (src/shell-snapshot.js, src/system-info.js, src/config-schema.js, src/env-utils.js, src/config-paths.js, src/command-runner.js)
 - [x] 667-686行解析済み (src/shell-function-encoder.js, src/shell-options-manager.js, src/snapshot-file-manager.js, src/shell-snapshot-generator.js)
 - [x] 647-666行解析済み (src/shell-type-detector.js, src/zsh-handler.js, src/bash-handler.js, src/shell-handler-factory.js)
+- [x] 617-656行解析済み (src/json-processor.js, src/sandbox-security.js, src/shell-command-security.js)
+- [x] 597-616行解析済み (src/tool-permissions.js, src/file-operations.js)
+- [x] 577-596行解析済み (src/read-tool-handler.js, src/image-reader.js)

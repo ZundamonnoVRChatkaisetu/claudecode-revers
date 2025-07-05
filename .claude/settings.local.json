@@ -5,7 +5,8 @@
       "Bash(mkdir:*)",
       "Bash(find:*)",
       "Bash(sed:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep:*)"
     ]
   },
   "enabledMcpjsonServers": [
