@@ -226,25 +226,25 @@ function setupExitHandler() {
 /**
  * 丸め関数
  */
-function uw6(value, precision) {
-    return Math.round(value * precision) / precision;
+function roundToPrecision(value, precisionFactor) { // Was uw6
+    return Math.round(value * precisionFactor) / precisionFactor;
 }
 
 /**
  * テレメトリ統計更新（XR2関数）
  */
-function XR2(apiDuration, cost, model, usage, modelName) {
+function recordApiUsage(apiDuration, cost, model, usage, modelName) { // Was XR2
     // 統計更新（B8A関数相当）
     sessionStats.apiDuration += apiDuration;
     
     // H8A（コスト追跡）
-    const costTracker = H8A();
+    const costTracker = getCostTracker(); // Was H8A()
     if (costTracker) {
         costTracker.add(cost, { model: modelName });
     }
     
     // Ul（トークン使用量追跡）
-    const tokenTracker = Ul();
+    const tokenTracker = getTokenUsageTracker(); // Was Ul()
     if (tokenTracker) {
         tokenTracker.add(usage.input_tokens, { type: "input", model: modelName });
         tokenTracker.add(usage.output_tokens, { type: "output", model: modelName });
@@ -262,10 +262,11 @@ function XR2(apiDuration, cost, model, usage, modelName) {
 /**
  * コスト追跡器（仮実装）
  */
-function H8A() {
+function getCostTracker() { // Was H8A
+    // In a real implementation, this might return a singleton or a more complex object
     return {
         add: (cost, metadata) => {
-            console.log(`Cost tracking: $${cost.toFixed(4)} for model ${metadata.model}`);
+            // console.log(`Cost tracking: $${cost.toFixed(4)} for model ${metadata.model}`);
         }
     };
 }
@@ -273,26 +274,29 @@ function H8A() {
 /**
  * トークン使用量追跡器（仮実装）
  */
-function Ul() {
+function getTokenUsageTracker() { // Was Ul
+    // Similar to getCostTracker, might be a singleton or more complex
     return {
         add: (tokens, metadata) => {
-            console.log(`Token tracking: ${tokens} tokens of type ${metadata.type} for model ${metadata.model}`);
+            // console.log(`Token tracking: ${tokens} tokens of type ${metadata.type} for model ${metadata.model}`);
         }
     };
 }
 
 /**
- * 統計保存関数（B8A関数相当）
+ * 統計保存関数（B8A関数相当） - Basic API stats recording
  */
-function B8A(apiDuration, cost, model, usage, modelName) {
-    // 内部統計更新
+function recordBasicApiStats(apiDuration, cost, model, usage, modelName) { // Was B8A
+    // This function seems simpler than XR2, focusing only on apiDuration.
+    // It might be a part of a larger system or an older version.
     sessionStats.apiDuration += apiDuration;
+    // Potentially other basic stats could be updated here if needed.
 }
 
 /**
  * 行数統計更新（Hq1関数）
  */
-function Hq1(added, removed) {
+function recordLineChanges(added, removed) { // Was Hq1
     sessionStats.linesAdded += added;
     sessionStats.linesRemoved += removed;
 }
@@ -300,46 +304,47 @@ function Hq1(added, removed) {
 /**
  * 行数変更追跡器（wq1関数）
  */
-function wq1() {
+function getLineChangeTracker() { // Was wq1
     return {
         add: (lines, metadata) => {
-            console.log(`Line tracking: ${lines} lines ${metadata.type}`);
+            // console.log(`Line tracking: ${lines} lines ${metadata.type}`);
         }
     };
 }
 
 /**
- * テレメトリイベント送信（E1関数）
+ * テレメトリーイベント送信（E1関数）
  */
-function E1(eventName, data) {
-    console.log(`Telemetry: ${eventName}`, data);
+function sendTelemetryEvent(eventName, data) { // Was E1
+    // console.log(`Telemetry Event: ${eventName}`, data);
+    // Actual telemetry implementation would go here
 }
 
 /**
  * トークン置換（特殊文字エスケープ）
  */
-const VR2 = 3;
-const KR2 = "<<:AMPERSAND_TOKEN:>>";
-const ER2 = "<<:DOLLAR_TOKEN:>>";
+const DIFF_CONTEXT_LINES = 3; // Was VR2
+const AMPERSAND_PLACEHOLDER = "<<:AMPERSAND_TOKEN:>>"; // Was KR2
+const DOLLAR_PLACEHOLDER = "<<:DOLLAR_TOKEN:>>"; // Was ER2
 
 /**
  * 特殊文字エスケープ
  */
-function TA1(text) {
-    return text.replaceAll("&", KR2).replaceAll("$", ER2);
+function escapeSpecialCharsForDiff(text) { // Was TA1
+    return text.replaceAll("&", AMPERSAND_PLACEHOLDER).replaceAll("$", DOLLAR_PLACEHOLDER);
 }
 
 /**
  * 特殊文字復元
  */
-function HR2(text) {
-    return text.replaceAll(KR2, "&").replaceAll(ER2, "$");
+function unescapeSpecialCharsFromDiff(text) { // Was HR2
+    return text.replaceAll(AMPERSAND_PLACEHOLDER, "&").replaceAll(DOLLAR_PLACEHOLDER, "$");
 }
 
 /**
  * パッチ表示と統計更新（Gk関数）
  */
-function Gk(patches, newContent = null) {
+function processAndLogPatches(patches, newContent = null) { // Was Gk
     let addedLines = 0;
     let removedLines = 0;
     
@@ -355,17 +360,17 @@ function Gk(patches, newContent = null) {
     }
     
     // 統計更新
-    Hq1(addedLines, removedLines);
+    recordLineChanges(addedLines, removedLines); // Was Hq1
     
     // 追跡器更新
-    const lineTracker = wq1();
+    const lineTracker = getLineChangeTracker(); // Was wq1()
     if (lineTracker) {
         lineTracker.add(addedLines, { type: "added" });
         lineTracker.add(removedLines, { type: "removed" });
     }
     
-    // テレメトリイベント
-    E1("tengu_file_changed", {
+    // テレメトリーイベント
+    sendTelemetryEvent("tengu_file_changed", { // Was E1
         lines_added: addedLines,
         lines_removed: removedLines
     });
@@ -374,12 +379,12 @@ function Gk(patches, newContent = null) {
 /**
  * 差分生成（zR2関数）
  */
-function zR2({ filePath, oldContent, newContent, ignoreWhitespace = false, singleHunk = false }) {
+function generateDiffHunks({ filePath, oldContent, newContent, ignoreWhitespace = false, singleHunk = false }) { // Was zR2
     // 仮実装：簡単な差分生成
-    const oldLines = TA1(oldContent).split('\n');
-    const newLines = TA1(newContent).split('\n');
+    const oldLines = escapeSpecialCharsForDiff(oldContent).split('\n'); // Was TA1
+    const newLines = escapeSpecialCharsForDiff(newContent).split('\n'); // Was TA1
     
-    const context = singleHunk ? 100000 : VR2;
+    const context = singleHunk ? 100000 : DIFF_CONTEXT_LINES; // Was VR2
     
     // 簡略化した差分計算
     const hunks = [{
@@ -390,7 +395,7 @@ function zR2({ filePath, oldContent, newContent, ignoreWhitespace = false, singl
         lines: [
             ...oldLines.map(line => `-${line}`),
             ...newLines.map(line => `+${line}`)
-        ].map(HR2)
+        ].map(unescapeSpecialCharsFromDiff) // Was HR2
     }];
     
     return hunks;
@@ -399,22 +404,22 @@ function zR2({ filePath, oldContent, newContent, ignoreWhitespace = false, singl
 /**
  * 改行正規化
  */
-function ib(text) {
+function normalizeNewlines(text) { // Was ib
     return text.replace(/\r\n/g, '\n');
 }
 
 /**
  * パッチ生成（rY関数の改良版）
  */
-function rYEnhanced({ filePath, fileContents, edits, ignoreWhitespace = false }) {
-    let processedContent = TA1(ib(fileContents));
+function applyEditsAndGeneratePatch({ filePath, fileContents, edits, ignoreWhitespace = false }) { // Was rYEnhanced
+    let processedContent = escapeSpecialCharsForDiff(normalizeNewlines(fileContents)); // Was TA1(ib(...))
     
     // 順次編集を適用
     const finalContent = edits.reduce((content, edit) => {
         const { old_string, new_string } = edit;
         const replaceAll = "replace_all" in edit ? edit.replace_all : false;
-        const escapedOldString = TA1(ib(old_string));
-        const escapedNewString = TA1(ib(new_string));
+        const escapedOldString = escapeSpecialCharsForDiff(normalizeNewlines(old_string)); // Was TA1(ib(...))
+        const escapedNewString = escapeSpecialCharsForDiff(normalizeNewlines(new_string)); // Was TA1(ib(...))
         
         if (replaceAll) {
             return content.replaceAll(escapedOldString, () => escapedNewString);
@@ -432,7 +437,7 @@ function rYEnhanced({ filePath, fileContents, edits, ignoreWhitespace = false })
         lines: [
             ...processedContent.split('\n').map(line => `-${line}`),
             ...finalContent.split('\n').map(line => `+${line}`)
-        ].map(HR2)
+        ].map(unescapeSpecialCharsFromDiff) // Was HR2
     }];
     
     return hunks;
@@ -441,16 +446,16 @@ function rYEnhanced({ filePath, fileContents, edits, ignoreWhitespace = false })
 /**
  * NotebookEditツール名定数
  */
-const Wc = "NotebookEdit";
+const NOTEBOOK_EDIT_TOOL_NAME = "NotebookEdit"; // Was Wc
 
 /**
  * Editツールプロンプト定数（UR2）
  */
-const UR2 = `Performs exact string replacements in files. 
+const EDIT_TOOL_PROMPT_GUIDELINES = `Performs exact string replacements in files.
 
 Usage:
 - You must use your \`Read\` tool at least once in the conversation before editing. This tool will error if you attempt an edit without reading the file. 
-- When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.`;
+- When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: spaces + line number + tab. Everything after that tab is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.`; // Was UR2
 
 /**
  * サブスクリプション・アップセルシステム
@@ -459,7 +464,7 @@ Usage:
 /**
  * サブスクリプション設定取得（WA関数相当）
  */
-function WA() {
+function getSubscriptionSettings() { // Was WA
     // 設定ファイルから読み取り（簡略化）
     return {
         recommendedSubscription: process.env.CLAUDE_RECOMMENDED_SUBSCRIPTION || "",
@@ -470,15 +475,17 @@ function WA() {
 /**
  * 設定保存（S0関数相当）
  */
-function S0(settings) {
+function saveSubscriptionSettings(settings) { // Was S0
     // 設定保存の簡略実装
-    process.env.CLAUDE_UPSELL_COUNT = settings.subscriptionUpsellShownCount?.toString();
+    if (settings && typeof settings.subscriptionUpsellShownCount === 'number') {
+        process.env.CLAUDE_UPSELL_COUNT = settings.subscriptionUpsellShownCount.toString();
+    }
 }
 
 /**
  * スタイル定数（XA.bold等）
  */
-const XA = {
+const TEXT_STYLES = { // Was XA
     bold: (text) => `\x1b[1m${text}\x1b[0m`,
     dim: (text) => `\x1b[2m${text}\x1b[0m`
 };
@@ -493,8 +500,8 @@ function generateSubscriptionUpsell(planType) {
         case "pro":
             message = `
 
-You can now use a Claude Pro subscription with Claude Code! ${XA.bold("https://claude.ai/upgrade")} then run /login.
-`;
+You can now use a Claude Pro subscription with Claude Code! ${TEXT_STYLES.bold("https://claude.ai/upgrade")} then run /login.
+`; // Was XA.bold
             break;
             
         case "max5x":
@@ -516,7 +523,7 @@ With the $200/mo Max plan, use Opus 4 as your daily driver with predictable pric
     }
     
     // テレメトリイベント送信
-    E1("tengu_subscription_upsell_shown", { recommendedSubscription: planType });
+    sendTelemetryEvent("tengu_subscription_upsell_shown", { recommendedSubscription: planType }); // Was E1
     
     return message;
 }
@@ -524,10 +531,10 @@ With the $200/mo Max plan, use Opus 4 as your daily driver with predictable pric
 /**
  * アップセル表示判定（YR2関数相当）
  */
-function YR2() {
+function shouldShowSubscriptionUpsell() { // Was YR2
     // React useState相当の状態管理（簡略化）
     const shouldShow = (() => {
-        const settings = WA();
+        const settings = getSubscriptionSettings(); // Was WA()
         const recommendedSubscription = settings.recommendedSubscription || "";
         const upsellShownCount = settings.subscriptionUpsellShownCount ?? 0;
         
@@ -540,12 +547,12 @@ function YR2() {
     
     // useEffect相当の副作用処理
     if (shouldShow) {
-        const settings = WA();
+        const settings = getSubscriptionSettings(); // Was WA()
         const newCount = (settings.subscriptionUpsellShownCount ?? 0) + 1;
         
         if (settings.subscriptionUpsellShownCount !== newCount) {
-            S0({ ...settings, subscriptionUpsellShownCount: newCount });
-            E1("tengu_subscription_upsell_shown", {});
+            saveSubscriptionSettings({ ...settings, subscriptionUpsellShownCount: newCount }); // Was S0
+            sendTelemetryEvent("tengu_subscription_upsell_count_incremented", { new_count: newCount }); // Was E1, more specific event
         }
     }
     
@@ -555,9 +562,13 @@ function YR2() {
 /**
  * アップセル表示コンポーネント（WR2関数）
  */
-function WR2() {
-    const upsellMessage = nAA();
-    if (!upsellMessage) return null;
+function getSubscriptionUpsellMessageComponent() { // Was WR2
+    const upsellMessage = getCostSummary(); // Was nAA(), assuming nAA is getCostSummary
+    if (!upsellMessage && shouldShowSubscriptionUpsell()) { // Ensure upsell is only shown if conditions met
+        const settings = getSubscriptionSettings();
+        return generateSubscriptionUpsell(settings.recommendedSubscription);
+    }
+    if (!upsellMessage) return null; // If nAA was something else and returned nothing.
     
     // React.createElement相当の簡略実装
     return upsellMessage.trim();
@@ -566,41 +577,39 @@ function WR2() {
 /**
  * コスト表示フォーマット（gw6関数）
  */
-function gw6(cost) {
-    return `$${cost > 0.5 ? uw6(cost, 100).toFixed(2) : cost.toFixed(4)}`;
+function formatCostForDisplay(cost) { // Was gw6
+    return `$${cost > 0.5 ? roundToPrecision(cost, 100).toFixed(2) : cost.toFixed(4)}`; // Was uw6
 }
 
 /**
  * モデル別使用量取得（Y8A関数相当）
  */
-function Y8A() {
-    // 簡略化された使用量データ
-    return {
-        'claude-3-opus': {
-            inputTokens: 1000,
-            outputTokens: 500,
-            cacheReadInputTokens: 100,
-            cacheCreationInputTokens: 50,
-            webSearchRequests: 2
-        },
-        'claude-3-sonnet': {
-            inputTokens: 2000,
-            outputTokens: 1000,
-            cacheReadInputTokens: 200,
-            cacheCreationInputTokens: 100,
-            webSearchRequests: 0
-        }
-    };
+function getUsageByModel() { // Was Y8A
+    // 簡略化された使用量データ - This should ideally fetch from sessionStats or a more dynamic source
+    // For now, let's simulate it based on sessionStats for a single model if available
+    if (sessionStats.totalInputTokens > 0 || sessionStats.totalOutputTokens > 0) {
+        return {
+            'claude-model': { // Generic model name
+                inputTokens: sessionStats.totalInputTokens,
+                outputTokens: sessionStats.totalOutputTokens,
+                cacheReadInputTokens: sessionStats.totalCacheReadInputTokens,
+                cacheCreationInputTokens: sessionStats.totalCacheCreationInputTokens,
+                webSearchRequests: sessionStats.totalWebSearchRequests
+            }
+        };
+    }
+    return {}; // Return empty if no usage
 }
 
 /**
  * モデル名表示（NK関数）
  */
-function NK(modelName) {
+function getDisplayModelName(modelName) { // Was NK
     const displayNames = {
         'claude-3-opus': 'Claude 3 Opus',
         'claude-3-sonnet': 'Claude 3 Sonnet',
-        'claude-3-haiku': 'Claude 3 Haiku'
+        'claude-3-haiku': 'Claude 3 Haiku',
+        'claude-model': 'Claude Model (Default)' // Added for the generic case from getUsageByModel
     };
     return displayNames[modelName] || modelName;
 }
@@ -608,7 +617,7 @@ function NK(modelName) {
 /**
  * 数値フォーマット（AI関数）
  */
-function AI(number) {
+function formatLargeNumber(number) { // Was AI
     if (number >= 1000000) {
         return (number / 1000000).toFixed(1) + 'M';
     } else if (number >= 1000) {
@@ -620,16 +629,16 @@ function AI(number) {
 /**
  * 不明モデル使用フラグ（F8A関数）
  */
-function F8A() {
-    // 不明なモデルが使用されているかのフラグ
-    return false; // 簡略化
+function hasUnknownModelUsage() { // Was F8A
+    // 不明なモデルが使用されているかのフラグ - This would need more logic if multiple models are tracked
+    return false; // 簡略化, assuming only known models or a single generic one
 }
 
 /**
  * 使用量詳細表示（hw6関数）
  */
-function hw6() {
-    const usageByModel = Y8A();
+function formatUsageDetailsByModel() { // Was hw6
+    const usageByModel = getUsageByModel(); // Was Y8A()
     
     if (Object.keys(usageByModel).length === 0) {
         return "Usage:                 0 input, 0 output, 0 cache read, 0 cache write";
@@ -638,9 +647,9 @@ function hw6() {
     let result = "Usage by model:";
     
     for (const [modelName, usage] of Object.entries(usageByModel)) {
-        const displayName = NK(modelName);
-        const usageText = `  ${AI(usage.inputTokens)} input, ${AI(usage.outputTokens)} output, ${AI(usage.cacheReadInputTokens)} cache read, ${AI(usage.cacheCreationInputTokens)} cache write` +
-                         (usage.webSearchRequests > 0 ? `, ${AI(usage.webSearchRequests)} web search` : "");
+        const displayName = getDisplayModelName(modelName); // Was NK
+        const usageText = `  ${formatLargeNumber(usage.inputTokens)} input, ${formatLargeNumber(usage.outputTokens)} output, ${formatLargeNumber(usage.cacheReadInputTokens)} cache read, ${formatLargeNumber(usage.cacheCreationInputTokens)} cache write` + // Was AI
+                         (usage.webSearchRequests > 0 ? `, ${formatLargeNumber(usage.webSearchRequests)} web search` : "");
         
         result += '\n' + `${displayName}:`.padStart(21) + usageText;
     }
@@ -651,68 +660,68 @@ function hw6() {
 /**
  * 統計サマリー表示（aAA関数の改良版）
  */
-function aAAEnhanced() {
-    const costText = gw6(tw()) + (F8A() ? " (costs may be inaccurate due to usage of unknown models)" : "");
-    const usageText = hw6();
+function getFullSessionSummaryText() { // Was aAAEnhanced
+    const costText = formatCostForDisplay(calculateCost()) + (hasUnknownModelUsage() ? " (costs may be inaccurate due to usage of unknown models)" : ""); // Was gw6(tw()) + (F8A()...)
+    const usageText = formatUsageDetailsByModel(); // Was hw6()
     
-    return XA.dim(`Total cost:            ${costText}
+    return TEXT_STYLES.dim(`Total cost:            ${costText}
 ${usageText}
-Total duration (API):  ${jj(IS())}
-Total duration (wall): ${jj(Eq1())}
-Total code changes:    ${tB1()} ${tB1() === 1 ? "line" : "lines"} added, ${eB1()} ${eB1() === 1 ? "line" : "lines"} removed`);
+Total duration (API):  ${formatTime(getApiDuration())}
+Total duration (wall): ${formatTime(getElapsedTime())}
+Total code changes:    ${getLinesAdded()} ${getLinesAdded() === 1 ? "line" : "lines"} added, ${getLinesRemoved()} ${getLinesRemoved() === 1 ? "line" : "lines"} removed`); // Was XA.dim, jj(IS()), jj(Eq1()), tB1(), eB1()
 }
 
 module.exports = {
     sessionStats,
-    jj,
-    IS,
-    Eq1,
-    tB1,
-    eB1,
-    Q8A,
-    D8A,
-    G8A,
-    I8A,
-    Z8A,
-    PB,
+    formatTime, // Was jj
+    getApiDuration, // Was IS
+    getElapsedTime, // Was Eq1
+    getLinesAdded, // Was tB1
+    getLinesRemoved, // Was eB1
+    getTotalInputTokens, // Was Q8A
+    getTotalOutputTokens, // Was D8A
+    getCacheCreationInputTokens, // Was G8A
+    getCacheReadInputTokens, // Was I8A
+    getWebSearchRequests, // Was Z8A
+    getSessionId, // Was PB
     generateSessionId,
-    tw,
-    $F1,
-    aAA,
-    aAAEnhanced,
-    oB,
-    M6,
-    nAA,
-    JR2,
-    uw6,
-    XR2,
-    H8A,
-    Ul,
-    B8A,
-    Hq1,
-    wq1,
-    E1,
-    VR2,
-    KR2,
-    ER2,
-    TA1,
-    HR2,
-    Gk,
-    zR2,
-    ib,
-    rYEnhanced,
-    Wc,
-    UR2,
-    WA,
-    S0,
-    XA,
+    calculateCost, // Was tw
+    isVerboseMode, // Was $F1
+    getSessionSummary, // Was aAA
+    getFullSessionSummaryText, // Was aAAEnhanced
+    getStats, // Was oB
+    saveStats, // Was M6
+    getCostSummary, // Was nAA
+    setupExitHandler, // Was JR2
+    roundToPrecision, // Was uw6
+    recordApiUsage, // Was XR2
+    getCostTracker, // Was H8A
+    getTokenUsageTracker, // Was Ul
+    recordBasicApiStats, // Was B8A
+    recordLineChanges, // Was Hq1
+    getLineChangeTracker, // Was wq1
+    sendTelemetryEvent, // Was E1
+    DIFF_CONTEXT_LINES, // Was VR2
+    AMPERSAND_PLACEHOLDER, // Was KR2
+    DOLLAR_PLACEHOLDER, // Was ER2
+    escapeSpecialCharsForDiff, // Was TA1
+    unescapeSpecialCharsFromDiff, // Was HR2
+    processAndLogPatches, // Was Gk
+    generateDiffHunks, // Was zR2
+    normalizeNewlines, // Was ib
+    applyEditsAndGeneratePatch, // Was rYEnhanced
+    NOTEBOOK_EDIT_TOOL_NAME, // Was Wc
+    EDIT_TOOL_PROMPT_GUIDELINES, // Was UR2
+    getSubscriptionSettings, // Was WA
+    saveSubscriptionSettings, // Was S0
+    TEXT_STYLES, // Was XA
     generateSubscriptionUpsell,
-    YR2,
-    WR2,
-    gw6,
-    Y8A,
-    NK,
-    AI,
-    F8A,
-    hw6
+    shouldShowSubscriptionUpsell, // Was YR2
+    getSubscriptionUpsellMessageComponent, // Was WR2
+    formatCostForDisplay, // Was gw6
+    getUsageByModel, // Was Y8A
+    getDisplayModelName, // Was NK
+    formatLargeNumber, // Was AI
+    hasUnknownModelUsage, // Was F8A
+    formatUsageDetailsByModel // Was hw6
 };

@@ -114,418 +114,418 @@ BaseDiff.prototype = {
         }
     },
     
-    addToPath: function A(B, Q, D, I, G) {
-        var Z = B.lastComponent;
-        if (Z && !G.oneChangePerToken && Z.added === Q && Z.removed === D) {
+    addToPath: function addToPath(currentPath, isAdded, isRemoved, offset, options) {
+        var lastComponent = currentPath.lastComponent;
+        if (lastComponent && !options.oneChangePerToken && lastComponent.added === isAdded && lastComponent.removed === isRemoved) {
             return {
-                oldPos: B.oldPos + I,
+                oldPos: currentPath.oldPos + offset,
                 lastComponent: {
-                    count: Z.count + 1,
-                    added: Q,
-                    removed: D,
-                    previousComponent: Z.previousComponent
+                    count: lastComponent.count + 1,
+                    added: isAdded,
+                    removed: isRemoved,
+                    previousComponent: lastComponent.previousComponent
                 }
             };
         } else {
             return {
-                oldPos: B.oldPos + I,
+                oldPos: currentPath.oldPos + offset,
                 lastComponent: {
                     count: 1,
-                    added: Q,
-                    removed: D,
-                    previousComponent: Z
+                    added: isAdded,
+                    removed: isRemoved,
+                    previousComponent: lastComponent
                 }
             };
         }
     },
     
-    extractCommon: function A(B, Q, D, I, G) {
-        var Z = Q.length;
-        var F = D.length;
-        var Y = B.oldPos;
-        var W = Y - I;
-        var C = 0;
+    extractCommon: function extractCommon(currentPath, newStringChars, oldStringChars, diagonal, options) {
+        var newLength = newStringChars.length;
+        var oldLength = oldStringChars.length;
+        var oldPos = currentPath.oldPos;
+        var newPos = oldPos - diagonal;
+        var commonCount = 0;
         
-        while (W + 1 < Z && Y + 1 < F && this.equals(D[Y + 1], Q[W + 1], G)) {
-            if (W++, Y++, C++, G.oneChangePerToken) {
-                B.lastComponent = {
+        while (newPos + 1 < newLength && oldPos + 1 < oldLength && this.equals(oldStringChars[oldPos + 1], newStringChars[newPos + 1], options)) {
+            if (newPos++, oldPos++, commonCount++, options.oneChangePerToken) {
+                currentPath.lastComponent = {
                     count: 1,
-                    previousComponent: B.lastComponent,
+                    previousComponent: currentPath.lastComponent,
                     added: false,
                     removed: false
                 };
             }
         }
         
-        if (C && !G.oneChangePerToken) {
-            B.lastComponent = {
-                count: C,
-                previousComponent: B.lastComponent,
+        if (commonCount && !options.oneChangePerToken) {
+            currentPath.lastComponent = {
+                count: commonCount,
+                previousComponent: currentPath.lastComponent,
                 added: false,
                 removed: false
             };
         }
         
-        return B.oldPos = Y, W;
+        return currentPath.oldPos = oldPos, newPos;
     },
     
-    equals: function A(B, Q, D) {
-        if (D.comparator) {
-            return D.comparator(B, Q);
+    equals: function equals(oldToken, newToken, options) {
+        if (options.comparator) {
+            return options.comparator(oldToken, newToken);
         } else {
-            return B === Q || D.ignoreCase && B.toLowerCase() === Q.toLowerCase();
+            return oldToken === newToken || options.ignoreCase && oldToken.toLowerCase() === newToken.toLowerCase();
         }
     },
     
-    removeEmpty: function A(B) {
-        var Q = [];
-        for (var D = 0; D < B.length; D++) {
-            if (B[D]) Q.push(B[D]);
+    removeEmpty: function removeEmpty(tokens) {
+        var filteredTokens = [];
+        for (var i = 0; i < tokens.length; i++) {
+            if (tokens[i]) filteredTokens.push(tokens[i]);
         }
-        return Q;
+        return filteredTokens;
     },
     
-    castInput: function A(B) {
-        return B;
+    castInput: function castInput(value) {
+        return value;
     },
     
-    tokenize: function A(B) {
-        return Array.from(B);
+    tokenize: function tokenize(value) {
+        return Array.from(value);
     },
     
-    join: function A(B) {
-        return B.join("");
+    join: function join(tokens) {
+        return tokens.join("");
     },
     
-    postProcess: function A(B) {
-        return B;
+    postProcess: function postProcess(diffResult) {
+        return diffResult;
     }
 };
 
 // Build diff result
-function oM2(A, B, Q, D, I) {
-    var G = [];
-    var Z;
+function buildValues(diffInstance, lastComponent, newStringChars, oldStringChars, useLongestToken) {
+    var components = [];
+    var currentComponent;
     
-    while (B) {
-        G.push(B);
-        Z = B.previousComponent;
-        delete B.previousComponent;
-        B = Z;
+    while (lastComponent) {
+        components.push(lastComponent);
+        currentComponent = lastComponent.previousComponent;
+        delete lastComponent.previousComponent;
+        lastComponent = currentComponent;
     }
     
-    G.reverse();
+    components.reverse();
     
-    var F = 0;
-    var Y = G.length;
-    var W = 0;
-    var C = 0;
+    var newStringPos = 0;
+    var componentsLength = components.length;
+    var oldStringPos = 0;
+    var componentIndex = 0;
     
-    for (; F < Y; F++) {
-        var J = G[F];
-        if (!J.removed) {
-            if (!J.added && I) {
-                var X = Q.slice(W, W + J.count);
-                X = X.map(function(V, K) {
-                    var E = D[C + K];
-                    return E.length > V.length ? E : V;
+    for (; componentIndex < componentsLength; componentIndex++) {
+        var component = components[componentIndex];
+        if (!component.removed) {
+            if (!component.added && useLongestToken) {
+                var newTokens = newStringChars.slice(newStringPos, newStringPos + component.count);
+                newTokens = newTokens.map(function(token, index) {
+                    var oldToken = oldStringChars[oldStringPos + index];
+                    return oldToken.length > token.length ? oldToken : token;
                 });
-                J.value = A.join(X);
+                component.value = diffInstance.join(newTokens);
             } else {
-                J.value = A.join(Q.slice(W, W + J.count));
+                component.value = diffInstance.join(newStringChars.slice(newStringPos, newStringPos + component.count));
             }
-            if (W += J.count, !J.added) C += J.count;
+            if (newStringPos += component.count, !component.added) oldStringPos += component.count;
         } else {
-            J.value = A.join(D.slice(C, C + J.count));
-            C += J.count;
+            component.value = diffInstance.join(oldStringChars.slice(oldStringPos, oldStringPos + component.count));
+            oldStringPos += component.count;
         }
     }
     
-    return G;
+    return components;
 }
 
 // Default diff instance
-var O53 = new JE;
+var defaultDiffInstance = new BaseDiff();
 
 // Common prefix detection
-function tM2(A, B) {
-    var Q;
-    for (Q = 0; Q < A.length && Q < B.length; Q++) {
-        if (A[Q] != B[Q]) return A.slice(0, Q);
+function commonPrefix(str1, str2) {
+    var i;
+    for (i = 0; i < str1.length && i < str2.length; i++) {
+        if (str1[i] != str2[i]) return str1.slice(0, i);
     }
-    return A.slice(0, Q);
+    return str1.slice(0, i);
 }
 
 // Common suffix detection
-function eM2(A, B) {
-    var Q;
-    if (!A || !B || A[A.length - 1] != B[B.length - 1]) return "";
-    for (Q = 0; Q < A.length && Q < B.length; Q++) {
-        if (A[A.length - (Q + 1)] != B[B.length - (Q + 1)]) {
-            return A.slice(-Q);
+function commonSuffix(str1, str2) {
+    var i;
+    if (!str1 || !str2 || str1[str1.length - 1] != str2[str2.length - 1]) return "";
+    for (i = 0; i < str1.length && i < str2.length; i++) {
+        if (str1[str1.length - (i + 1)] != str2[str2.length - (i + 1)]) {
+            return str1.slice(-i);
         }
     }
-    return A.slice(-Q);
+    return str1.slice(-i);
 }
 
 // String manipulation utilities
-function mAA(A, B, Q) {
-    if (A.slice(0, B.length) != B) {
-        throw Error("string " + JSON.stringify(A) + " doesn't start with prefix " + JSON.stringify(B) + "; this is a bug");
+function replacePrefix(str, prefix, replacement) {
+    if (str.slice(0, prefix.length) != prefix) {
+        throw Error("string " + JSON.stringify(str) + " doesn't start with prefix " + JSON.stringify(prefix) + "; this is a bug");
     }
-    return Q + A.slice(B.length);
+    return replacement + str.slice(prefix.length);
 }
 
-function dAA(A, B, Q) {
-    if (!B) return A + Q;
-    if (A.slice(-B.length) != B) {
-        throw Error("string " + JSON.stringify(A) + " doesn't end with suffix " + JSON.stringify(B) + "; this is a bug");
+function replaceSuffix(str, suffix, replacement) {
+    if (!suffix) return str + replacement;
+    if (str.slice(-suffix.length) != suffix) {
+        throw Error("string " + JSON.stringify(str) + " doesn't end with suffix " + JSON.stringify(suffix) + "; this is a bug");
     }
-    return A.slice(0, -B.length) + Q;
+    return str.slice(0, -suffix.length) + replacement;
 }
 
-function MA1(A, B) {
-    return mAA(A, B, "");
+function trimPrefix(str, prefix) {
+    return replacePrefix(str, prefix, "");
 }
 
-function pH1(A, B) {
-    return dAA(A, B, "");
+function trimSuffix(str, suffix) {
+    return replaceSuffix(str, suffix, "");
 }
 
-function AR2(A, B) {
-    return B.slice(0, Ew6(A, B));
+function commonOverlap(text1, text2) {
+    return text2.slice(0, kmpSearch(text1, text2));
 }
 
 // KMP algorithm implementation
-function Ew6(A, B) {
-    var Q = 0;
-    if (A.length > B.length) Q = A.length - B.length;
-    var D = B.length;
-    if (A.length < B.length) D = A.length;
-    var I = Array(D);
-    var G = 0;
-    I[0] = 0;
+function kmpSearch(text, pattern) {
+    var textIndex = 0;
+    if (text.length > pattern.length) textIndex = text.length - pattern.length;
+    var patternLength = pattern.length;
+    if (text.length < pattern.length) patternLength = text.length;
+    var lps = Array(patternLength); // longest proper prefix which is also suffix
+    var patternMatchIndex = 0;
+    lps[0] = 0;
     
-    for (var Z = 1; Z < D; Z++) {
-        if (B[Z] == B[G]) {
-            I[Z] = I[G];
+    for (var i = 1; i < patternLength; i++) {
+        if (pattern[i] == pattern[patternMatchIndex]) {
+            lps[i] = lps[patternMatchIndex];
         } else {
-            I[Z] = G;
+            lps[i] = patternMatchIndex;
         }
-        while (G > 0 && B[Z] != B[G]) {
-            G = I[G];
+        while (patternMatchIndex > 0 && pattern[i] != pattern[patternMatchIndex]) {
+            patternMatchIndex = lps[patternMatchIndex];
         }
-        if (B[Z] == B[G]) G++;
+        if (pattern[i] == pattern[patternMatchIndex]) patternMatchIndex++;
     }
     
-    G = 0;
-    for (var F = Q; F < A.length; F++) {
-        while (G > 0 && A[F] != B[G]) {
-            G = I[G];
+    patternMatchIndex = 0;
+    for (var j = textIndex; j < text.length; j++) {
+        while (patternMatchIndex > 0 && text[j] != pattern[patternMatchIndex]) {
+            patternMatchIndex = lps[patternMatchIndex];
         }
-        if (A[F] == B[G]) G++;
+        if (text[j] == pattern[patternMatchIndex]) patternMatchIndex++;
     }
     
-    return G;
+    return patternMatchIndex;
 }
 
 // Character patterns for word boundaries
-var lH1 = "a-zA-Z0-9_\\u{C0}-\\u{FF}\\u{D8}-\\u{F6}\\u{F8}-\\u{2C6}\\u{2C8}-\\u{2D7}\\u{2DE}-\\u{2FF}\\u{1E00}-\\u{1EFF}";
-var Hw6 = new RegExp("[" + lH1 + "]+|\\s+|[^" + lH1 + "]", "ug");
+var wordBoundaryChars = "a-zA-Z0-9_\\u{C0}-\\u{FF}\\u{D8}-\\u{F6}\\u{F8}-\\u{2C6}\\u{2C8}-\\u{2D7}\\u{2DE}-\\u{2FF}\\u{1E00}-\\u{1EFF}";
+var wordRegex = new RegExp("[" + wordBoundaryChars + "]+|\\s+|[^" + wordBoundaryChars + "]", "ug");
 
 // Word-level diff
-var iH1 = new JE;
-iH1.equals = function(A, B, Q) {
-    if (Q.ignoreCase) {
-        A = A.toLowerCase();
-        B = B.toLowerCase();
+var diffWordsInstance = new BaseDiff();
+diffWordsInstance.equals = function(word1, word2, options) {
+    if (options.ignoreCase) {
+        word1 = word1.toLowerCase();
+        word2 = word2.toLowerCase();
     }
-    return A.trim() === B.trim();
+    return word1.trim() === word2.trim();
 };
 
-iH1.tokenize = function(A) {
-    var B = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
-    var Q;
+diffWordsInstance.tokenize = function(text) {
+    var options = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
+    var tokens;
     
-    if (B.intlSegmenter) {
-        if (B.intlSegmenter.resolvedOptions().granularity != "word") {
+    if (options.intlSegmenter) {
+        if (options.intlSegmenter.resolvedOptions().granularity != "word") {
             throw new Error('The segmenter passed must have a granularity of "word"');
         }
-        Q = Array.from(B.intlSegmenter.segment(A), function(G) {
-            return G.segment;
+        tokens = Array.from(options.intlSegmenter.segment(text), function(segment) {
+            return segment.segment;
         });
     } else {
-        Q = A.match(Hw6) || [];
+        tokens = text.match(wordRegex) || [];
     }
     
-    var D = [];
-    var I = null;
+    var processedTokens = [];
+    var lastToken = null;
     
-    Q.forEach(function(G) {
-        if (/\s/.test(G)) {
-            if (I == null) {
-                D.push(G);
+    tokens.forEach(function(token) {
+        if (/\s/.test(token)) {
+            if (lastToken == null) {
+                processedTokens.push(token);
             } else {
-                D.push(D.pop() + G);
+                processedTokens.push(processedTokens.pop() + token);
             }
-        } else if (/\s/.test(I)) {
-            if (D[D.length - 1] == I) {
-                D.push(D.pop() + G);
+        } else if (/\s/.test(lastToken)) {
+            if (processedTokens[processedTokens.length - 1] == lastToken) {
+                processedTokens.push(processedTokens.pop() + token);
             } else {
-                D.push(I + G);
+                processedTokens.push(lastToken + token);
             }
         } else {
-            D.push(G);
+            processedTokens.push(token);
         }
-        I = G;
+        lastToken = token;
     });
     
-    return D;
+    return processedTokens;
 };
 
-iH1.join = function(A) {
-    return A.map(function(B, Q) {
-        if (Q == 0) {
-            return B;
+diffWordsInstance.join = function(tokens) {
+    return tokens.map(function(token, index) {
+        if (index == 0) {
+            return token;
         } else {
-            return B.replace(/^\s+/, "");
+            return token.replace(/^\s+/, "");
         }
     }).join("");
 };
 
-iH1.postProcess = function(A, B) {
-    if (!A || B.oneChangePerToken) return A;
+diffWordsInstance.postProcess = function(diffResult, options) {
+    if (!diffResult || options.oneChangePerToken) return diffResult;
     
-    var Q = null;
-    var D = null;
-    var I = null;
+    var lastNonChange = null;
+    var currentRemoved = null;
+    var currentAdded = null;
     
-    if (A.forEach(function(G) {
-        if (G.added) {
-            D = G;
-        } else if (G.removed) {
-            I = G;
+    if (diffResult.forEach(function(change) {
+        if (change.added) {
+            currentAdded = change;
+        } else if (change.removed) {
+            currentRemoved = change;
         } else {
-            if (D || I) BR2(Q, I, D, G);
-            Q = G;
-            D = null;
-            I = null;
+            if (currentAdded || currentRemoved) handleWhitespaceChanges(lastNonChange, currentRemoved, currentAdded, change);
+            lastNonChange = change;
+            currentAdded = null;
+            currentRemoved = null;
         }
-    }), D || I) {
-        BR2(Q, I, D, null);
+    }), currentAdded || currentRemoved) {
+        handleWhitespaceChanges(lastNonChange, currentRemoved, currentAdded, null);
     }
     
-    return A;
+    return diffResult;
 };
 
 // Whitespace handling for word diff
-function BR2(A, B, Q, D) {
-    if (B && Q) {
-        var I = B.value.match(/^\s*/)[0];
-        var G = B.value.match(/\s*$/)[0];
-        var Z = Q.value.match(/^\s*/)[0];
-        var F = Q.value.match(/\s*$/)[0];
+function handleWhitespaceChanges(beforeChange, removedChange, addedChange, afterChange) {
+    if (removedChange && addedChange) {
+        var removedLeadingSpace = removedChange.value.match(/^\s*/)[0];
+        var removedTrailingSpace = removedChange.value.match(/\s*$/)[0];
+        var addedLeadingSpace = addedChange.value.match(/^\s*/)[0];
+        var addedTrailingSpace = addedChange.value.match(/\s*$/)[0];
         
-        if (A) {
-            var Y = tM2(I, Z);
-            A.value = dAA(A.value, Z, Y);
-            B.value = MA1(B.value, Y);
-            Q.value = MA1(Q.value, Y);
+        if (beforeChange) {
+            var commonLeadingSpace = commonPrefix(removedLeadingSpace, addedLeadingSpace);
+            beforeChange.value = replaceSuffix(beforeChange.value, addedLeadingSpace, commonLeadingSpace);
+            removedChange.value = trimPrefix(removedChange.value, commonLeadingSpace);
+            addedChange.value = trimPrefix(addedChange.value, commonLeadingSpace);
         }
         
-        if (D) {
-            var W = eM2(G, F);
-            D.value = mAA(D.value, F, W);
-            B.value = pH1(B.value, W);
-            Q.value = pH1(Q.value, W);
+        if (afterChange) {
+            var commonTrailingSpace = commonSuffix(removedTrailingSpace, addedTrailingSpace);
+            afterChange.value = replacePrefix(afterChange.value, addedTrailingSpace, commonTrailingSpace);
+            removedChange.value = trimSuffix(removedChange.value, commonTrailingSpace);
+            addedChange.value = trimSuffix(addedChange.value, commonTrailingSpace);
         }
-    } else if (Q) {
-        if (A) Q.value = Q.value.replace(/^\s*/, "");
-        if (D) D.value = D.value.replace(/^\s*/, "");
-    } else if (A && D) {
-        var C = D.value.match(/^\s*/)[0];
-        var J = B.value.match(/^\s*/)[0];
-        var X = B.value.match(/\s*$/)[0];
-        var V = tM2(C, J);
-        B.value = MA1(B.value, V);
-        var K = eM2(MA1(C, V), X);
-        B.value = pH1(B.value, K);
-        D.value = mAA(D.value, C, K);
-        A.value = dAA(A.value, C, C.slice(0, C.length - K.length));
-    } else if (D) {
-        var E = D.value.match(/^\s*/)[0];
-        var w = B.value.match(/\s*$/)[0];
-        var q = AR2(w, E);
-        B.value = pH1(B.value, q);
-    } else if (A) {
-        var R = A.value.match(/\s*$/)[0];
-        var M = B.value.match(/^\s*/)[0];
-        var O = AR2(R, M);
-        B.value = MA1(B.value, O);
+    } else if (addedChange) {
+        if (beforeChange) addedChange.value = addedChange.value.replace(/^\s*/, "");
+        if (afterChange) afterChange.value = afterChange.value.replace(/^\s*/, "");
+    } else if (beforeChange && afterChange) {
+        var afterLeadingSpace = afterChange.value.match(/^\s*/)[0];
+        var removedLeadingSpace = removedChange.value.match(/^\s*/)[0];
+        var removedTrailingSpace = removedChange.value.match(/\s*$/)[0];
+        var commonLeading = commonPrefix(afterLeadingSpace, removedLeadingSpace);
+        removedChange.value = trimPrefix(removedChange.value, commonLeading);
+        var commonTrailing = commonSuffix(trimPrefix(afterLeadingSpace, commonLeading), removedTrailingSpace);
+        removedChange.value = trimSuffix(removedChange.value, commonTrailing);
+        afterChange.value = replacePrefix(afterChange.value, afterLeadingSpace, commonTrailing);
+        beforeChange.value = replaceSuffix(beforeChange.value, afterLeadingSpace, afterLeadingSpace.slice(0, afterLeadingSpace.length - commonTrailing.length));
+    } else if (afterChange) {
+        var afterLeadingSpace = afterChange.value.match(/^\s*/)[0];
+        var removedTrailingSpace = removedChange.value.match(/\s*$/)[0];
+        var common = commonOverlap(removedTrailingSpace, afterLeadingSpace);
+        removedChange.value = trimSuffix(removedChange.value, common);
+    } else if (beforeChange) {
+        var beforeTrailingSpace = beforeChange.value.match(/\s*$/)[0];
+        var removedLeadingSpace = removedChange.value.match(/^\s*/)[0];
+        var common = commonOverlap(beforeTrailingSpace, removedLeadingSpace);
+        removedChange.value = trimPrefix(removedChange.value, common);
     }
 }
 
 // Character-level diff
-var GR2 = new JE;
-GR2.tokenize = function(A) {
-    var B = new RegExp("(\\r?\\n)|[" + lH1 + "]+|[^\\S\\n\\r]+|[^" + lH1 + "]", "ug");
-    return A.match(B) || [];
+var diffCharsInstance = new BaseDiff();
+diffCharsInstance.tokenize = function(text) {
+    var tokenRegex = new RegExp("(\\r?\\n)|[" + wordBoundaryChars + "]+|[^\\S\\n\\r]+|[^" + wordBoundaryChars + "]", "ug");
+    return text.match(tokenRegex) || [];
 };
 
-function ZR2(A, B, Q) {
-    return GR2.diff(A, B, Q);
+function diffChars(oldStr, newStr, options) {
+    return diffCharsInstance.diff(oldStr, newStr, options);
 }
 
 // Line-level diff
-var nH1 = new JE;
-nH1.tokenize = function(A, B) {
-    if (B.stripTrailingCr) {
-        A = A.replace(/\r\n/g, '\n');
+var diffLinesInstance = new BaseDiff();
+diffLinesInstance.tokenize = function(text, options) {
+    if (options.stripTrailingCr) {
+        text = text.replace(/\r\n/g, '\n');
     }
     
-    var Q = [];
-    var D = A.split(/(\n|\r\n)/);
+    var lines = [];
+    var parts = text.split(/(\n|\r\n)/);
     
-    if (!D[D.length - 1]) D.pop();
+    if (!parts[parts.length - 1]) parts.pop();
     
-    for (var I = 0; I < D.length; I++) {
-        var G = D[I];
-        if (I % 2 && !B.newlineIsToken) {
-            Q[Q.length - 1] += G;
+    for (var i = 0; i < parts.length; i++) {
+        var part = parts[i];
+        if (i % 2 && !options.newlineIsToken) {
+            lines[lines.length - 1] += part;
         } else {
-            Q.push(G);
+            lines.push(part);
         }
     }
     
-    return Q;
+    return lines;
 };
 
-nH1.equals = function(A, B, Q) {
-    if (Q.ignoreWhitespace) {
-        if (!Q.newlineIsToken || !A.includes('\n')) {
+diffLinesInstance.equals = function(line1, line2, options) {
+    if (options.ignoreWhitespace) {
+        if (!options.newlineIsToken || !line1.includes('\n')) {
             // Implementation continues...
         }
     }
     // Base equality check
-    return A === B || (Q.ignoreCase && A.toLowerCase() === B.toLowerCase());
+    return line1 === line2 || (options.ignoreCase && line1.toLowerCase() === line2.toLowerCase());
 };
 
 module.exports = {
-    JE,
-    oM2,
-    tM2,
-    eM2,
-    mAA,
-    dAA,
-    MA1,
-    pH1,
-    AR2,
-    Ew6,
-    iH1,
-    GR2,
-    ZR2,
-    nH1,
-    BR2,
-    O53,
-    nY
+    BaseDiff,
+    buildValues,
+    commonPrefix,
+    commonSuffix,
+    replacePrefix,
+    replaceSuffix,
+    trimPrefix,
+    trimSuffix,
+    commonOverlap,
+    kmpSearch,
+    diffWordsInstance,
+    diffCharsInstance,
+    diffChars,
+    diffLinesInstance,
+    handleWhitespaceChanges,
+    defaultDiffInstance
+    // nY was removed as it was undefined
 };

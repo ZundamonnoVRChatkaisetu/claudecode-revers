@@ -2,14 +2,14 @@
 // 元ファイル: cli.js 2138-2147行より復元
 
 import React, { useState, useEffect } from 'react';
-import { Zp } from './installation-manager.js';
+import { diagnoseInstallationSetup } from './installation-manager.js';
 
 // ドクター診断UIコンポーネント
 function Cw1({ onDone }) {
     let [B, Q] = useState(null);
     
     useEffect(() => {
-        Zp().then((D) => {
+        diagnoseInstallationSetup().then((D) => {
             Q(D);
         });
     }, []);

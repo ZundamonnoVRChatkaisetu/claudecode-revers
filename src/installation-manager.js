@@ -40,6 +40,31 @@ const PACKAGE_INFO = {
     VERSION: "1.0.43"
 };
 
+// --- Placeholder functions for currently undefined imports ---
+// These should be replaced with actual implementations or imports
+function isLocalInstallation() {
+    // console.warn("isLocalInstallation is a placeholder");
+    // Example: Check if scriptPath indicates a known local npm pattern
+    const scriptPath = process.argv[1] || "";
+    return scriptPath.includes(join(homedir(), ".claude", "local"));
+}
+
+function isNativeBinary() {
+    // console.warn("isNativeBinary is a placeholder");
+    // Example: Check if the executable is in a common native binary location
+    const exePath = process.argv[0] || "";
+    return exePath.endsWith("/claude") && !exePath.includes("node_modules");
+}
+
+async function checkNativeInstallation() {
+    // console.warn("checkNativeInstallation is a placeholder");
+    // Example: Check for specific files or structures of a native install
+    const nativeMarkerPath = join(homedir(), ".claude", ".native_install_marker");
+    return existsSync(nativeMarkerPath);
+}
+// --- End of Placeholder functions ---
+
+
 // インストールタイプ検出
 async function detectInstallationType() {
     let scriptPath = process.argv[1] || "";
@@ -102,7 +127,7 @@ function getExecutablePath() {
         if (existsSync(join(homedir(), ".local/bin/claude"))) {
             return join(homedir(), ".local/bin/claude");
         }
-        return "native";
+        return "native"; // Should probably be a more specific path or null
     }
     
     try {
@@ -122,17 +147,20 @@ function getStartupScriptPath() {
 }
 
 // 更新可能性チェック
-function canUpdate(installationType) {
+function checkCanUpdate(installationType) { // Was canUpdate
     switch (installationType) {
         case "npm-local":
         case "native":
             return true;
         case "npm-global":
             try {
-                execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
-                return false; // グローバルインストールは権限が必要
+                // Check if we can write to the global prefix. This is a simplified check.
+                // A more robust check would involve attempting a dry-run or checking actual permissions.
+                const prefix = execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
+                accessSync(prefix, constants.W_OK); // Check write access
+                return true; // If no error, assume writable
             } catch {
-                return false;
+                return false; // Cannot write or get prefix
             }
         case "development":
         case "unknown":
@@ -142,35 +170,48 @@ function canUpdate(installationType) {
 }
 
 // 複数インストール検出
-function detectMultipleInstallations() {
+function findAllInstallations() { // Was detectMultipleInstallations
     let installations = [];
-    let localPath = join(homedir(), ".claude", "local");
+    let localNpmPath = join(homedir(), ".claude", "local", "bin", "claude"); // More specific path
     
-    // ローカルインストールチェック
-    if (checkLocalInstallationExists()) {
-        installations.push({ type: "npm-local", path: localPath });
+    // ローカルnpmインストールチェック
+    if (existsSync(localNpmPath)) {
+        installations.push({ type: "npm-local", path: localNpmPath });
     }
     
-    // グローバルインストールチェック
+    // グローバルnpmインストールチェック
     try {
-        let prefix = execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
-        let globalPath = join(prefix, "bin", "claude");
-        if (existsSync(globalPath)) {
-            installations.push({ type: "npm-global", path: globalPath });
+        let globalPrefix = execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
+        let globalNpmPath = join(globalPrefix, "bin", "claude");
+        if (existsSync(globalNpmPath)) {
+            installations.push({ type: "npm-global", path: globalNpmPath });
         }
     } catch {}
     
-    // ネイティブインストールチェック
-    let nativePath = join(homedir(), ".local", "bin", "claude");
-    if (existsSync(nativePath)) {
-        installations.push({ type: "native", path: nativePath });
+    // ネイティブインストールチェック (e.g., from a .deb or .rpm)
+    let nativeBinaryPath = join(homedir(), ".local", "bin", "claude");
+    if (existsSync(nativeBinaryPath) && !installations.some(inst => inst.path === nativeBinaryPath)) {
+        installations.push({ type: "native", path: nativeBinaryPath });
     }
-    
-    // 追加ネイティブインストールチェック
-    if (getClaudeConfig().installMethod === "native") {
-        let sharePath = join(homedir(), ".local", "share", "claude");
-        if (existsSync(sharePath) && !installations.some((install) => install.type === "native")) {
-            installations.push({ type: "native", path: sharePath });
+    // Attempt to find via 'which' as another native check
+    try {
+        const whichClaudePath = execSync("which claude", { encoding: "utf8" }).trim();
+        if (existsSync(whichClaudePath) && !installations.some(inst => inst.path === whichClaudePath) && !whichClaudePath.includes("node_modules")) {
+             // Avoid double-counting npm global if 'which claude' points to it
+            if (!installations.some(inst => inst.type === "npm-global" && inst.path === whichClaudePath)) {
+                installations.push({ type: "native", path: whichClaudePath });
+            }
+        }
+    } catch {}
+
+    // 追加ネイティブインストールチェック (from custom installer script maybe)
+    // This part seems to rely on a config file that might not always be accurate
+    // or could point to an already detected installation.
+    const currentConfig = getClaudeConfig();
+    if (currentConfig.installMethod === "native") {
+        let customNativePath = join(homedir(), ".local", "share", "claude", "claude"); // Example path
+        if (existsSync(customNativePath) && !installations.some((install) => install.path === customNativePath)) {
+            installations.push({ type: "native", path: customNativePath });
         }
     }
     
@@ -178,23 +219,23 @@ function detectMultipleInstallations() {
 }
 
 // インストール警告生成
-function generateInstallationWarnings(installationType) {
-    let warnings = [];
-    let config = getClaudeConfig();
+function collectInstallationWarnings(installationType) { // Was generateInstallationWarnings
+    let warnings = []; // Was B
+    let currentConfig = getClaudeConfig(); // Was config
     
     if (installationType === "development") return warnings;
     
     // 設定ミスマッチチェック
-    if (installationType === "npm-local" && config.installMethod !== "local") {
+    if (installationType === "npm-local" && currentConfig.installMethod !== "local") {
         warnings.push({
-            issue: `Running from local installation but config install method is '${config.installMethod}'`,
+            issue: `Running from local installation but config install method is '${currentConfig.installMethod}'`,
             fix: "Run claude migrate-installer to fix configuration"
         });
     }
     
-    if (installationType === "native" && config.installMethod !== "native") {
+    if (installationType === "native" && currentConfig.installMethod !== "native") {
         warnings.push({
-            issue: `Running native installation but config install method is '${config.installMethod}'`,
+            issue: `Running native installation but config install method is '${currentConfig.installMethod}'`,
             fix: "Run claude install to update configuration"
         });
     }
@@ -208,66 +249,66 @@ function generateInstallationWarnings(installationType) {
     }
     
     // PATH問題診断
-    let I = q9A(); // エイリアス取得（要実装）
-    let G = of2(); // エイリアス有効性チェック（要実装）
+    let aliasPath = getAliasPath(); // Was I = q9A()
+    let isAliasValid = checkAliasPathValidity(aliasPath); // Was G = of2()
     
-    if (A === "npm-local") {
-        if (I && !G) {
-            B.push({
+    if (installationType === "npm-local") { // Was A
+        if (aliasPath && !isAliasValid) {
+            warnings.push({ // Was B.push
                 issue: `Local installation not accessible via PATH`,
-                fix: `Alias exists but points to invalid target: ${I}. Update alias: alias claude="~/.claude/local/claude"`
+                fix: `Alias exists but points to invalid target: ${aliasPath}. Update alias: alias claude="${join(homedir(), ".claude", "local", "bin", "claude")}"`
             });
-        } else if (!I) {
-            B.push({
+        } else if (!aliasPath) {
+            warnings.push({ // Was B.push
                 issue: "Local installation not accessible via PATH",
-                fix: 'Create alias: alias claude="~/.claude/local/claude"'
+                fix: `Create alias: alias claude="${join(homedir(), ".claude", "local", "bin", "claude")}"`
             });
         }
     }
     
-    return B;
+    return warnings; // Was B
 }
 
 // エイリアス削除機能
-function Jj6() {
-    let A = Rk(); // シェル設定取得（要実装）
+function removeClaudeAliases() { // Was Jj6
+    let shellConfigurations = getShellConfigurations(); // Was A = Rk()
     
-    for (let [, B] of Object.entries(A)) {
+    for (let [, configPath] of Object.entries(shellConfigurations)) { // Was B
         try {
-            let Q = Ok(B); // 設定ファイル読み取り（要実装）
-            if (!Q) continue;
+            let configFileContent = readShellConfigFile(configPath); // Was Q = Ok(B)
+            if (!configFileContent) continue;
             
-            let { filtered: D, hadAlias: I } = ec(Q); // エイリアス削除（要実装）
-            if (I) {
-                Ap(B, D); // ファイル保存（要実装）
-                iA(`Removed claude alias from ${B}`); // ログ出力（要実装）
+            let { filtered: newContent, hadAlias: aliasExisted } = removeAliasFromContent(configFileContent); // Was D, I = ec(Q)
+            if (aliasExisted) {
+                writeShellConfigFile(configPath, newContent); // Was Ap(B, D)
+                logInfoMessage(`Removed claude alias from ${configPath}`); // Was iA
             }
-        } catch (Q) {
-            J9(`Failed to remove alias from ${B}: ${Q}`); // エラーログ（要実装）
+        } catch (error) { // Was Q
+            logErrorMessage(`Failed to remove alias from ${configPath}: ${error.message}`); // Was J9
         }
     }
 }
 
 // 総合診断機能
-async function Zp() {
-    let A = await n01();
-    let B = PACKAGE_INFO.VERSION ? PACKAGE_INFO.VERSION : "unknown";
-    let Q = Xj6();
-    let D = Vj6();
-    let I = Kj6(A);
-    let G = Ej6();
-    let Z = Hj6(A);
-    let F = WA();
-    let Y = F.installMethod || "not set";
-    let W = F.autoUpdates !== undefined ? F.autoUpdates.toString() : "default (true)";
-    let C = null;
+async function diagnoseInstallationSetup() { // Was Zp
+    let installationType = await detectInstallationType(); // Was A = await n01()
+    let currentVersion = PACKAGE_INFO.VERSION ? PACKAGE_INFO.VERSION : "unknown"; // Was B
+    let resolvedInstallationPath = getExecutablePath(); // Was Q = Xj6()
+    let invokedBinaryPath = getStartupScriptPath(); // Was D = Vj6()
+    let autoUpdateCapable = checkCanUpdate(installationType); // Was I = Kj6(A)
+    let foundMultipleInstallations = findAllInstallations(); // Was G = Ej6()
+    let collectedWarnings = collectInstallationWarnings(installationType); // Was Z = Hj6(A)
+    let claudeAppConfig = getClaudeConfig(); // Was F = WA()
+    let configInstallMethod = claudeAppConfig.installMethod || "not set"; // Was Y
+    let configAutoUpdatesEnabled = claudeAppConfig.autoUpdates !== undefined ? claudeAppConfig.autoUpdates.toString() : "default (true)"; // Was W
+    let hasGlobalUpdatePermissions = null; // Was C
     
     // 権限チェック（グローバルインストール時）
-    if (A === "npm-global") {
-        C = (await T9A()).hasPermissions; // 権限チェック（要実装）
-        if (!C && I) {
-            Z.push({
-                issue: "Insufficient permissions for auto-updates",
+    if (installationType === "npm-global") {
+        hasGlobalUpdatePermissions = (await checkGlobalInstallPermissions()).hasPermissions; // Was C = (await T9A()).hasPermissions
+        if (!hasGlobalUpdatePermissions && autoUpdateCapable) { // autoUpdateCapable was I
+            collectedWarnings.push({ // Was Z.push
+                issue: "Insufficient permissions for auto-updates with global npm",
                 fix: [
                     "Run: sudo chown -R $USER:$(id -gn) $(npm -g config get prefix)",
                     "or use `claude migrate-installer` to migrate to local installation"
@@ -276,170 +317,175 @@ async function Zp() {
         }
     }
     
-    let J = {
-        installationType: A,
-        version: B,
-        installationPath: Q,
-        invokedBinary: D,
-        autoUpdates: I,
-        configInstallMethod: Y,
-        configAutoUpdates: W,
-        hasUpdatePermissions: C,
-        multipleInstallations: G,
-        warnings: Z
+    let diagnosisResult = { // Was J
+        installationType: installationType,
+        version: currentVersion,
+        installationPath: resolvedInstallationPath,
+        invokedBinary: invokedBinaryPath,
+        autoUpdates: autoUpdateCapable,
+        configInstallMethod: configInstallMethod,
+        configAutoUpdates: configAutoUpdatesEnabled,
+        hasUpdatePermissions: hasGlobalUpdatePermissions,
+        multipleInstallations: foundMultipleInstallations,
+        warnings: collectedWarnings
     };
     
     // 推奨アクション
-    if (!I) {
-        if (A === "native") {
-            J.recommendation = "Run 'claude install' to fix installation and enable auto-updates";
-        } else if (A === "npm-global") {
-            J.recommendation = `Run '/migrate-installer' to enable auto-updates
+    if (!autoUpdateCapable) { // Was !I
+        if (installationType === "native") { // Was A
+            diagnosisResult.recommendation = "Run 'claude install' to fix installation and enable auto-updates";
+        } else if (installationType === "npm-global") { // Was A
+            diagnosisResult.recommendation = `Run 'claude migrate-installer' to enable auto-updates.
 This migrates to a local installation in ~/.claude/local`;
         }
     }
     
-    return J;
+    return diagnosisResult;
 }
 
 // アップデートロック機能（2127-2137行より復元）
-const updateLockPath = join(homedir(), '.claude', '.update.lock');
-const lockTimeout = 300000; // 5分
+const updateLockFilePath = join(homedir(), '.claude', '.update.lock'); // Was updateLockPath
+const updateLockTimeout = 300000; // 5分, Was lockTimeout
 
 // アップデートロックファイル作成
-function Yj6() {
+function createUpdateLockFile() { // Was Yj6
     try {
         const claudeDir = join(homedir(), '.claude');
         if (!existsSync(claudeDir)) {
-            mkdirSync(claudeDir);
+            mkdirSync(claudeDir, { recursive: true }); // Ensure parent dirs are created
         }
         
-        if (existsSync(updateLockPath)) {
-            const lockStats = statSync(updateLockPath);
-            if (Date.now() - lockStats.mtimeMs < lockTimeout) {
+        if (existsSync(updateLockFilePath)) {
+            const lockStats = statSync(updateLockFilePath);
+            if (Date.now() - lockStats.mtimeMs < updateLockTimeout) {
+                console.error('Update lock file is still active.');
                 return false;
             }
             try {
-                unlinkSync(updateLockPath);
+                unlinkSync(updateLockFilePath);
             } catch (error) {
-                console.error(error);
+                console.error('Failed to remove stale update lock file:', error);
                 return false;
             }
         }
         
-        writeFileSync(updateLockPath, `${process.pid}`, { encoding: 'utf8', flush: false });
+        writeFileSync(updateLockFilePath, `${process.pid}`, { encoding: 'utf8', flush: true }); // Ensure flush
         return true;
     } catch (error) {
-        console.error(error);
+        console.error('Failed to create update lock file:', error);
         return false;
     }
 }
 
 // アップデートロックファイル削除
-function Wj6() {
+function releaseUpdateLockFile() { // Was Wj6
     try {
-        if (existsSync(updateLockPath)) {
-            const lockContent = readFileSync(updateLockPath, { encoding: 'utf8' });
+        if (existsSync(updateLockFilePath)) {
+            const lockContent = readFileSync(updateLockFilePath, { encoding: 'utf8' });
             if (lockContent === `${process.pid}`) {
-                unlinkSync(updateLockPath);
+                unlinkSync(updateLockFilePath);
             }
         }
     } catch (error) {
-        console.error(error);
+        console.error('Failed to release update lock file:', error);
     }
 }
 
 // NPM/Bunグローバルプレフィックス取得
-async function Cj6() {
-    const isBun = process.env.BUN_VERSION || process.argv[0].includes('bun');
-    let result = null;
+async function getGlobalNpmOrBunPrefix() { // Was Cj6
+    const isBun = process.env.BUN_VERSION || (process.argv[0] && process.argv[0].includes('bun'));
+    let commandOutput = null; // Was result
     
     try {
         if (isBun) {
-            result = execSync('bun pm bin -g', { encoding: 'utf8', timeout: 5000 });
+            commandOutput = execSync('bun pm bin -g', { encoding: 'utf8', timeout: 5000 });
         } else {
-            result = execSync('npm -g config get prefix', { encoding: 'utf8', timeout: 5000 });
+            commandOutput = execSync('npm -g config get prefix', { encoding: 'utf8', timeout: 5000 });
         }
-        return { code: 0, stdout: result.trim() };
+        return { code: 0, stdout: commandOutput.trim() };
     } catch (error) {
-        console.error(`Failed to check ${isBun ? 'bun' : 'npm'} permissions`);
-        return { code: 1, stdout: null };
+        console.error(`Failed to get global prefix for ${isBun ? 'bun' : 'npm'}: ${error.message}`);
+        return { code: 1, stdout: null, stderr: error.stderr ? error.stderr.toString() : error.message };
     }
 }
 
 // グローバルインストール権限チェック
-async function T9A_enhanced() {
+async function checkGlobalInstallPermissions() { // Was T9A_enhanced
     try {
-        const result = await Cj6();
-        if (result.code !== 0) {
+        const prefixResult = await getGlobalNpmOrBunPrefix(); // Was result
+        if (prefixResult.code !== 0) {
             return { hasPermissions: false, npmPrefix: null };
         }
         
-        const npmPrefix = result.stdout;
-        let hasPermissions = false;
+        const globalNpmPrefix = prefixResult.stdout; // Was npmPrefix
+        let hasWritePermissions = false; // Was hasPermissions
         
         try {
-            accessSync(npmPrefix, constants.W_OK);
-            hasPermissions = true;
+            accessSync(globalNpmPrefix, constants.W_OK);
+            hasWritePermissions = true;
         } catch {
-            hasPermissions = false;
+            hasWritePermissions = false;
         }
         
-        if (!hasPermissions) {
-            console.error('Insufficient permissions for global npm install.');
+        if (!hasWritePermissions) {
+            // Avoid logging directly here, let caller decide
+            // console.error('Insufficient permissions for global npm install.');
         }
         
-        return { hasPermissions, npmPrefix };
+        return { hasPermissions: hasWritePermissions, npmPrefix: globalNpmPrefix };
     } catch (error) {
-        console.error(error);
+        console.error('Error checking global install permissions:', error);
         return { hasPermissions: false, npmPrefix: null };
     }
 }
 
 // 最新バージョン取得
-async function Yw1() {
+async function fetchLatestPackageVersion() { // Was Yw1
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 5000);
+    const fetchTimeout = setTimeout(() => controller.abort(), 5000);
     
     try {
-        const result = execSync(
+        const versionOutput = execSync( // Was result
             `npm view ${PACKAGE_INFO.PACKAGE_URL}@latest version`,
             { 
                 encoding: 'utf8', 
-                timeout: 5000,
+                timeout: 5000, // Redundant with AbortController but good fallback
                 signal: controller.signal 
             }
         );
-        return result.trim();
+        clearTimeout(fetchTimeout);
+        return versionOutput.trim();
     } catch (error) {
-        console.error(`npm view failed:`, error.message);
+        clearTimeout(fetchTimeout);
+        // console.error(`npm view failed:`, error.message); // Let caller handle logging
         return null;
     }
 }
 
 // 自動アップデート実行
-async function l01() {
+async function runAutomaticUpdateProcess() { // Was l01
     // ロック取得
-    if (!Yj6()) {
-        console.error('Another process is currently installing an update');
-        // テレメトリーイベント送信（実装時に追加）
+    if (!createUpdateLockFile()) { // Was Yj6
+        console.error('Another process is currently installing an update.');
+        sendTelemetryData('auto_update_lock_failed', { reason: 'lock_held' }); // Was qK
         return 'in_progress';
     }
     
     try {
-        // エイリアス削除（Jj6関数呼び出し）
-        Jj6();
+        // エイリアス削除
+        removeClaudeAliases(); // Was Jj6()
         
         // WSL環境でのWindows NPM検出
-        const isBun = process.env.BUN_VERSION || process.argv[0].includes('bun');
-        if (!isBun && process.platform === 'linux' && process.argv[0].includes('/mnt/c/')) {
-            console.error('Windows NPM detected in WSL environment');
+        const isBun = process.env.BUN_VERSION || (process.argv[0] && process.argv[0].includes('bun'));
+        if (!isBun && process.platform === 'linux' && (process.argv[0] && process.argv[0].includes('/mnt/c/'))) {
+            console.error('Windows NPM detected in WSL environment. This can cause issues.');
             console.error(WSL_INSTALLATION_ERROR);
-            // テレメトリーイベント送信（実装時に追加）
-            return 'error';
+            sendTelemetryData('auto_update_wsl_npm_error', {}); // Was qK
+            return 'error_wsl_npm'; // More specific error
         }
         
-        // バージョンアップデート要求メッセージ
+        // This function seems to just inform the user to update manually.
+        // Actual update logic might be elsewhere or intended to be triggered by 'claude update'.
         const updateMessage = `It looks like your version of Claude Code (${PACKAGE_INFO.VERSION}) needs an update.
 A newer version is required to continue.
 
@@ -449,24 +495,26 @@ To update, please run:
 This will ensure you have access to the latest features and improvements.`;
         
         console.log(updateMessage);
-        return 'update_required';
+        sendTelemetryData('auto_update_manual_required', { current_version: PACKAGE_INFO.VERSION }); // Was qK
+        return 'update_required_manual'; // More specific status
         
     } catch (error) {
-        console.error(error);
-        return 'error';
+        console.error('Error during automatic update process:', error);
+        sendTelemetryData('auto_update_process_error', { error: error.message }); // Was qK
+        return 'error_process'; // More specific error
     } finally {
         // ロック解除
-        Wj6();
+        releaseUpdateLockFile(); // Was Wj6()
     }
 }
 
 // バージョン設定チェック機能（2117-2126行より復元）
-async function Jv2() {
+async function checkMinimumVersionRequirement() { // Was Jv2
     try {
         // テレメトリー設定取得（実際の実装では適切なテレメトリー関数を使用）
-        const versionConfig = await qK("tengu_version_config", { minVersion: "0.0.0" });
+        const versionConfig = await sendTelemetryData("fetch_tengu_version_config", { minVersion: "0.0.0" }); // Was qK
         
-        if (versionConfig.minVersion && semver.lt(PACKAGE_INFO.VERSION, versionConfig.minVersion)) {
+        if (versionConfig && versionConfig.minVersion && semver.lt(PACKAGE_INFO.VERSION, versionConfig.minVersion)) {
             console.error(`It looks like your version of Claude Code (${PACKAGE_INFO.VERSION}) needs an update.
 A newer version (${versionConfig.minVersion} or higher) is required to continue.
 
@@ -476,29 +524,32 @@ To update, please run:
 This will ensure you have access to the latest features and improvements.`);
             
             // プロセス終了（BI(1)関数の代替）
-            process.exit(1);
+            process.exit(1); // Exit with error code
         }
     } catch (error) {
         // エラーハンドリング（h1関数の代替）
         console.error('Version check error:', error);
+        // Optionally, send telemetry for this error too
+        sendTelemetryData('version_check_error', { error: error.message }); // Was qK
     }
 }
 
 // テレメトリー関数のプレースホルダー（実際の実装では適切なテレメトリーライブラリを使用）
-async function qK(eventName, data) {
-    // プレースホルダー実装
-    return data;
+async function sendTelemetryData(eventName, data) { // Was qK
+    // console.log(`Telemetry Event: ${eventName}`, data); // Placeholder implementation
+    // In a real scenario, this would send data to a telemetry service.
+    return data; // Return data for cases like versionConfig where it's used
 }
 
-// 未定義関数の実装
+// 未定義関数の実装 (Helper functions, renamed for clarity)
 
 /**
  * ローカルインストール存在チェック
  */
 function checkLocalInstallationExists() {
     try {
-        const localPath = join(homedir(), ".claude", "local");
-        return existsSync(localPath);
+        const localInstallDir = join(homedir(), ".claude", "local"); // Was localPath
+        return existsSync(localInstallDir);
     } catch {
         return false;
     }
@@ -507,107 +558,131 @@ function checkLocalInstallationExists() {
 /**
  * Claude設定取得
  */
-function getClaudeConfig() {
+function getClaudeConfig() { // Was getClaudeConfig (kept name, improved internals)
     try {
-        const configPath = join(homedir(), ".claude", "config.json");
-        if (existsSync(configPath)) {
-            return JSON.parse(readFileSync(configPath, 'utf8'));
+        const configFilePath = join(homedir(), ".claude", "config.json"); // Was configPath
+        if (existsSync(configFilePath)) {
+            const rawConfig = readFileSync(configFilePath, 'utf8');
+            return JSON.parse(rawConfig);
         }
-    } catch {}
+    } catch (error) {
+        // console.error("Failed to read or parse Claude config:", error);
+    }
     
-    return {
+    return { // Default config
         installMethod: "unknown",
-        autoUpdates: true
+        autoUpdates: true // Default to true as per original Zp
     };
 }
 
 /**
- * エイリアス取得
+ * エイリアス取得 (Renamed from getAlias to getAliasPath for clarity of return)
  */
-function getAlias() {
+function getAliasPath() { // Was q9A, then getAlias
     try {
-        // 簡易実装 - bashrcからエイリアスを確認
-        const bashrc = join(homedir(), ".bashrc");
-        if (existsSync(bashrc)) {
-            const content = readFileSync(bashrc, 'utf8');
-            const match = content.match(/alias claude=["'](.+?)["']/);
-            return match ? match[1] : null;
+        // This is a simplified check. A more robust one would parse shell config files.
+        const commonShellConfigs = [".bashrc", ".zshrc", ".profile", ".bash_profile"];
+        for (const configFile of commonShellConfigs) {
+            const configFilePath = join(homedir(), configFile);
+            if (existsSync(configFilePath)) {
+                const content = readFileSync(configFilePath, 'utf8');
+                const match = content.match(/alias\s+claude=(["'])(.+?)\1/);
+                if (match && match[2]) {
+                    // Resolve ~ in path if present
+                    return match[2].replace(/^~(?=$|\/|\\)/, homedir());
+                }
+            }
         }
-    } catch {}
+    } catch (error) {
+        // console.error("Error getting alias path:", error);
+    }
     return null;
 }
 
 /**
- * エイリアス有効性チェック
+ * エイリアス有効性チェック (Renamed from checkAliasValidity for clarity)
  */
-function checkAliasValidity() {
-    const alias = getAlias();
-    if (!alias) return false;
+function checkAliasPathValidity(aliasPath) { // Was of2, then checkAliasValidity
+    if (!aliasPath) return false;
     
     try {
-        return existsSync(alias);
+        // Check if the path exists and is executable (simplified, just checks existence)
+        return existsSync(aliasPath);
     } catch {
         return false;
     }
 }
 
 /**
- * シェル設定取得
+ * シェル設定取得 (Renamed from getShellConfigs)
  */
-function getShellConfigs() {
-    const configs = {
-        bash: join(homedir(), ".bashrc"),
-        zsh: join(homedir(), ".zshrc"),
-        fish: join(homedir(), ".config", "fish", "config.fish")
+function getShellConfigurations() { // Was Rk, then getShellConfigs
+    const potentialConfigs = {
+        bash: [".bashrc", ".bash_profile"],
+        zsh: [".zshrc", ".zshenv"],
+        fish: [".config/fish/config.fish"]
     };
     
-    return Object.entries(configs).filter(([, path]) => existsSync(path));
+    const existingConfigs = {}; // Store as { shell: path }
+    for (const shell in potentialConfigs) {
+        for (const configFile of potentialConfigs[shell]) {
+            const configPath = join(homedir(), configFile);
+            if (existsSync(configPath)) {
+                if (!existingConfigs[shell]) existingConfigs[shell] = [];
+                existingConfigs[shell].push(configPath);
+            }
+        }
+    }
+    return existingConfigs; // Returns an object like { bash: ["~/.bashrc"], zsh: ["~/.zshrc"] }
 }
 
 /**
- * 設定ファイル読み取り
+ * 設定ファイル読み取り (Renamed from readConfigFile)
  */
-function readConfigFile(filePath) {
+function readShellConfigFile(filePath) { // Was Ok, then readConfigFile
     try {
         return readFileSync(filePath, 'utf8');
-    } catch {
+    } catch (error) {
+        // console.error(`Failed to read shell config file ${filePath}:`, error);
         return null;
     }
 }
 
 /**
- * エイリアス削除処理
+ * エイリアス削除処理 (Renamed from removeAlias to removeAliasFromContent)
  */
-function removeAlias(content) {
+function removeAliasFromContent(content) { // Was ec, then removeAlias
     const lines = content.split('\n');
-    const filtered = lines.filter(line => !line.includes('alias claude='));
-    const hadAlias = filtered.length < lines.length;
+    // More robust regex to catch variations of claude alias
+    const filteredLines = lines.filter(line => !/^\s*alias\s+claude\s*=\s*(["']).*?\1/.test(line));
+    const hadAlias = filteredLines.length < lines.length;
     
-    return { filtered: filtered.join('\n'), hadAlias };
+    return { filtered: filteredLines.join('\n'), hadAlias };
 }
 
 /**
- * ファイル保存
+ * ファイル保存 (Renamed from saveFile to writeShellConfigFile for specificity)
  */
-function saveFile(filePath, content) {
+function writeShellConfigFile(filePath, content) { // Was Ap, then saveFile
     try {
         writeFileSync(filePath, content, 'utf8');
     } catch (error) {
-        throw new Error(`Failed to save file ${filePath}: ${error.message}`);
+        // console.error(`Failed to write shell config file ${filePath}:`, error);
+        throw new Error(`Failed to save file ${filePath}: ${error.message}`); // Re-throw for caller
     }
 }
 
 /**
- * 情報ログ出力
+ * 情報ログ出力 (Renamed from logInfo)
  */
-function logInfo(message) {
+function logInfoMessage(message) { // Was iA, then logInfo
     console.log(`[INFO] ${message}`);
 }
 
 /**
- * エラーログ出力
+ * エラーログ出力 (Renamed from logError)
  */
-function logError(message) {
+function logErrorMessage(message) { // Was J9, then logError
     console.error(`[ERROR] ${message}`);
 }
 
@@ -621,38 +696,39 @@ Looked for:
     EXIT_CODE: 1
 };
 
-module.exports = {
-    detectInstallationType,
-    getExecutablePath,
-    getStartupScriptPath,
-    canUpdate,
-    detectMultipleInstallations,
-    generateInstallationWarnings,
-    removeAliases: function() { /* Jj6関数のエイリアス */ },
-    diagnoseInstallation: function() { /* Zp関数のエイリアス */ },
+export {
+    detectInstallationType, // Was n01
+    getExecutablePath, // Was Xj6
+    getStartupScriptPath, // Was Vj6
+    checkCanUpdate, // Was canUpdate / Kj6
+    findAllInstallations, // Was detectMultipleInstallations / Ej6
+    collectInstallationWarnings, // Was generateInstallationWarnings / Hj6
+    removeClaudeAliases, // Was Jj6
+    diagnoseInstallationSetup, // Was Zp
     WSL_INSTALLATION_ERROR,
     PACKAGE_INFO,
-    createUpdateLock: function() { /* Yj6関数のエイリアス */ },
-    releaseUpdateLock: function() { /* Wj6関数のエイリアス */ },
-    getNpmGlobalPrefix: function() { /* Cj6関数のエイリアス */ },
-    checkUpdatePermissions: T9A_enhanced,
-    getLatestVersion: function() { /* Yw1関数のエイリアス */ },
-    performAutoUpdate: function() { /* l01関数のエイリアス */ },
-    checkVersionRequirements: function() { /* Jv2関数のエイリアス */ },
-    sendTelemetryEvent: qK,
+    createUpdateLockFile, // Was Yj6
+    releaseUpdateLockFile, // Was Wj6
+    getGlobalNpmOrBunPrefix, // Was Cj6
+    checkGlobalInstallPermissions, // Was T9A_enhanced / T9A
+    fetchLatestPackageVersion, // Was Yw1
+    runAutomaticUpdateProcess, // Was l01
+    checkMinimumVersionRequirement, // Was Jv2
+    sendTelemetryData, // Was qK
     SHELL_SCRIPT_ERRORS,
     semver,
-    // 新規追加の関数
+    // Helper functions (some were previously placeholders or internal short names)
     checkLocalInstallationExists,
-    getClaudeConfig,
-    getAlias,
-    checkAliasValidity,
-    getShellConfigs,
-    readConfigFile,
-    removeAlias,
-    saveFile,
-    logInfo,
-    logError,
+    getClaudeConfig, // Was WA
+    getAliasPath, // Was q9A
+    checkAliasPathValidity, // Was of2
+    getShellConfigurations, // Was Rk
+    readShellConfigFile, // Was Ok
+    removeAliasFromContent, // Was ec
+    writeShellConfigFile, // Was Ap
+    logInfoMessage, // Was iA
+    logErrorMessage, // Was J9
+    // Placeholders that are now defined at the top
     isLocalInstallation,
     isNativeBinary,
     checkNativeInstallation
