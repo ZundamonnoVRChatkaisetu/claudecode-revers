@@ -1,15 +1,15 @@
 {
   "name": "@anthropic-ai/claude-code",
   "version": "1.0.43",
-  "main": "sdk.mjs",
-  "types": "sdk.d.ts",
+  "main": "src/cli-main.js",
+  "types": "src/types.d.ts",
   "bin": {
-    "claude": "cli.js"
+    "claudee": "src/cli-main.js",
+    "claudee-code": "src/cli-main.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "type": "module",
   "author": "Boris Cherny <boris@anthropic.com>",
   "license": "SEE LICENSE IN README.md",
   "description": "Use Claude, Anthropic's AI assistant, right from your terminal. Claude can understand your codebase, edit files, run terminal commands, and handle entire workflows for you.",
@@ -18,10 +18,58 @@
     "url": "https://github.com/anthropics/claude-code/issues"
   },
   "scripts": {
-    "prepare": "node -e \"if (!process.env.AUTHORIZED) { console.error('ERROR: Direct publishing is not allowed.\\nPlease use the publish-external.sh script to publish this package.'); process.exit(1); }\"",
+    "start": "node src/cli-main.js",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "jest --testPathPattern=test/unit",
+    "test:integration": "jest --testPathPattern=test/integration",
+    "lint": "eslint src/**/*.js",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run lint && npm run typecheck",
+    "doctor": "node src/cli-main.js doctor",
+    "init": "node src/cli-main.js init",
+    "dev": "nodemon src/cli-main.js",
+
     "preinstall": "node scripts/preinstall.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "axios": "^1.6.0",
+    "commander": "^11.0.0",
+    "react": "^18.2.0",
+    "zod": "^3.22.0",
+    "ink": "^4.4.0",
+    "inquirer": "^9.2.0",
+    "chalk": "^5.3.0",
+    "ora": "^7.0.0",
+    "fs-extra": "^11.1.0",
+    "glob": "^10.3.0",
+    "minimatch": "^9.0.0",
+    "semver": "^7.5.0",
+    "yaml": "^2.3.0",
+    "dotenv": "^16.3.0",
+    "node-fetch": "^3.3.0",
+    "ws": "^8.14.0",
+    "proper-lockfile": "^4.1.2",
+    "lru-cache": "^10.0.0",
+    "marked": "^9.1.0",
+    "shell-quote": "^1.8.1",
+    "uuid": "^9.0.0",
+    "debug": "^4.3.4",
+    "gaxios": "^6.1.1",
+    "google-auth-library": "^9.2.0",
+    "apollo-server-core": "^3.12.0",
+    "@nestjs/graphql": "^12.0.0",
+    "pg": "^8.11.0",
+    "mysql": "^2.18.1",
+    "graphql": "^16.8.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.50.0",
+    "nodemon": "^3.0.0",
+    "typescript": "^5.2.0",
+    "@types/node": "^20.8.0",
+    "supertest": "^6.3.0"
+  },
   "optionalDependencies": {
     "@img/sharp-darwin-arm64": "^0.33.5",
     "@img/sharp-darwin-x64": "^0.33.5",

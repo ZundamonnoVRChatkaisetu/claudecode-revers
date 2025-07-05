@@ -1,21 +1,25 @@
 // Bash Tool Core Implementation
 // Reconstructed from cli.js lines 1587-1596
 
-const { z: m } = require('zod');
+const { z: zodSchema } = require('zod');
 const RD = require('react');
 
+// Import required components and utilities\nconst { TextComponent, BoxComponent, ErrorComponent, BashResultComponent } = require('./ui-components');\nconst { recordTelemetryEvent, getCommitCounter, getPRCounter } = require('./telemetry-system');\nconst { getBashPrompt, splitCommands, isExtendedModeEnabled } = require('./bash-utils');\nconst { checkUserPermissions, validateCommandSecurity } = require('./security-validator');\nconst { getCurrentDirectory, getWorkingDirectory, getPermissionContext } = require('./file-system');
+//
+// Constants\nconst ERROR_SEPARATOR = '\\n---\\n';\n\n// Base schema definition (should be imported from schema module)\nconst baseSchema = zodSchema.object({\n    command: zodSchema.string().describe(\"The command to execute\"),\n    description: zodSchema.string().optional().describe(\"Description of what this command does\")\n});
+
 // Extended schema with sandbox and shell executable options
-const Cw6 = sM2.extend({
-    sandbox: m.boolean().optional().describe("whether to run this command in sandboxed mode: command run in this mode may not write to the filesystem or use the network, but they can read files, analyze data, and report back to you. When possible, run commands (e.g. grep) in this mode to present a smoother experience for the human, who isn't prompted to approve commands run in sandbox mode. If you run a command in sandbox mode and it looks like it fails because it needs write access after all, try again in non-sandbox mode"),
-    shellExecutable: m.string().optional().describe("Optional shell path to use instead of the default shell. The snapshot path will be set to undefined as well. Used primarily for testing.")
+const ExtendedBashSchema = baseSchema.extend({
+    sandbox: zodSchema.boolean().optional().describe("whether to run this command in sandboxed mode: command run in this mode may not write to the filesystem or use the network, but they can read files, analyze data, and report back to you. When possible, run commands (e.g. grep) in this mode to present a smoother experience for the human, who isn't prompted to approve commands run in sandbox mode. If you run a command in sandbox mode and it looks like it fails because it needs write access after all, try again in non-sandbox mode"),
+    shellExecutable: zodSchema.string().optional().describe("Optional shell path to use instead of the default shell. The snapshot path will be set to undefined as well. Used primarily for testing.")
 });
 
 // Timing constants
-const rM2 = 2;
-const hAA = 160;
+const MIN_EXECUTION_TIME_MS = 2;
+const MAX_DISPLAY_ROWS = 160;
 
 // Secure command patterns - over 80 patterns for safe execution
-const Jw6 = new Set([
+const SECURE_COMMAND_PATTERNS = new Set([
     /^date\b[^<>()$`]*$/,
     /^cal\b[^<>()$`]*$/,
     /^uptime\b[^<>()$`]*$/,
@@ -183,14 +187,14 @@ const _9 = {
         
         if (!B) {
             let I = D.split('\n');
-            let G = I.length > rM2;
-            let Z = D.length > hAA;
+            let tooManyLines = lines.length > MIN_EXECUTION_TIME_MS;
+            let tooLong = displayCommand.length > MAX_DISPLAY_ROWS;
             
             if (G || Z) {
                 let F = D;
-                if (G) F = I.slice(0, rM2).join('\n');
-                if (F.length > hAA) F = F.slice(0, hAA);
-                return RD.createElement(P, null, F.trim(), "…");
+                if (tooManyLines) truncated = lines.slice(0, MIN_EXECUTION_TIME_MS).join('\n');
+                if (truncated.length > MAX_DISPLAY_ROWS) truncated = truncated.slice(0, MAX_DISPLAY_ROWS);
+                return RD.createElement(TextComponent, null, truncated.trim(), "…");
             }
         }
         
@@ -198,54 +202,54 @@ const _9 = {
     },
     
     renderToolUseRejectedMessage() {
-        return RD.createElement(Y6, null);
+        return RD.createElement(ErrorComponent, null);
     },
     
     renderToolUseProgressMessage() {
-        return RD.createElement($0, { height: 1 }, 
-            RD.createElement(P, { color: "secondaryText" }, "Running…"));
+        return RD.createElement(BoxComponent, { height: 1 }, 
+            RD.createElement(TextComponent, { color: "secondaryText" }, "Running…"));
     },
     
     renderToolUseQueuedMessage() {
-        return RD.createElement($0, { height: 1 }, 
-            RD.createElement(P, { color: "secondaryText" }, "Waiting…"));
+        return RD.createElement(BoxComponent, { height: 1 }, 
+            RD.createElement(TextComponent, { color: "secondaryText" }, "Waiting…"));
     },
     
-    renderToolResultMessage(A, B, { verbose: Q }) {
-        return RD.createElement(Fc, { content: A, verbose: Q });
+    renderToolResultMessage(content, result, { verbose: verbose }) {
+        return RD.createElement(BashResultComponent, { content: content, verbose: verbose });
     },
     
-    mapToolResultToToolResultBlockParam({ interrupted: A, stdout: B, stderr: Q, isImage: D }, I) {
-        if (D) {
-            let F = B.trim().match(/^data:([^;]+);base64,(.+)$/);
-            if (F) {
-                let Y = F[1];
-                let W = F[2];
+    mapToolResultToToolResultBlockParam({ interrupted: interrupted, stdout: stdout, stderr: stderr, isImage: isImage }, toolUseId) {
+        if (isImage) {
+            let base64Match = stdout.trim().match(/^data:([^;]+);base64,(.+)$/);
+            if (base64Match) {
+                let mediaType = base64Match[1];
+                let data = base64Match[2];
                 return {
-                    tool_use_id: I,
+                    tool_use_id: toolUseId,
                     type: "tool_result",
                     content: [{
                         type: "image",
                         source: {
                             type: "base64",
-                            media_type: Y || "image/jpeg",
-                            data: W || ""
+                            media_type: mediaType || "image/jpeg",
+                            data: data || ""
                         }
                     }]
                 };
             }
         }
         
-        let G = B;
-        if (B) {
-            G = B.replace(/^(\s*\n)+/, "");
-            G = G.trimEnd();
+        let cleanedStdout = stdout;
+        if (stdout) {
+            cleanedStdout = stdout.replace(/^(\s*\n)+/, "");
+            cleanedStdout = cleanedStdout.trimEnd();
         }
         
-        let Z = Q.trim();
-        if (A) {
-            if (Q) Z += cH1;
-            Z += "<error>Command was aborted before completion</error>";
+        let errorOutput = stderr.trim();
+        if (interrupted) {
+            if (stderr) errorOutput += ERROR_SEPARATOR;
+            errorOutput += "<error>Command was aborted before completion</error>";
         }
         
         return {
@@ -397,12 +401,12 @@ async function Kw6({ input: A, abortController: B, dialogResultPromise: Q, setTo
 }
 
 module.exports = {
-    Cw6,
-    Jw6,
-    Xw6,
-    _9,
-    Vw6,
-    Kw6,
-    rM2,
-    hAA
+    ExtendedBashSchema,
+    SECURE_COMMAND_PATTERNS,
+    trackGitOperation,
+    bashToolImplementation,
+    executeShellCommand,
+    executeBashCommand,
+    MIN_EXECUTION_TIME_MS,
+    MAX_DISPLAY_ROWS
 };

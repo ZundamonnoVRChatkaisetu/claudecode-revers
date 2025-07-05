@@ -1,12 +1,19 @@
 // Command Security and Permission System
 // Reconstructed from cli.js lines 1577-1586
 
-const { z: m } = require('zod');
-const { isAbsolute: eU6, resolve: Aw6 } = require('path');
+const { z: zodSchema } = require('zod');
+const { isAbsolute, resolve } = require('path');
+
+// Import required utilities
+const { shellParser, QUOTE_ESCAPE_CHAR, SINGLE_QUOTE_ESCAPE_CHAR } = require('./shell-parser');
+const { parseCommandList } = require('./command-parser');
+const VALID_FILE_DESCRIPTORS = new Set(['1', '2', '0']);
+
+// Additional imports\nconst { parseShellTokens, splitPipeCommands } = require('./command-parser');\nconst { bashToolImplementation } = require('./bash-tool-core');\nconst TOOL_NAME = 'Bash';\n\n// Stub functions (require actual implementation)\nfunction isPathAllowed(path, context) {\n    // TODO: Implement actual path permission checking\n    return true;\n}
 
 // Shell control operators
-const uM2 = new Set(["&&", "||", ";", ";;", "|"]);
-const sU6 = new Set([...uM2, ">&", ">"]);
+const CONTROL_OPERATORS = new Set(["&&", "||", ";", ";;", "|"]);
+const REDIRECT_OPERATORS = new Set([...CONTROL_OPERATORS, ">&", ">"]);
 
 // Command injection detection prompt template
 const commandInjectionTemplate = `ONLY return the prefix. Do not return any other text, markdown markers, or other content or formatting.
@@ -14,26 +21,26 @@ const commandInjectionTemplate = `ONLY return the prefix. Do not return any othe
 Command: `;
 
 // Pipeline safety verification
-function oU6(A) {
-    let B = yAA.parse(A.replaceAll('"', `"${jAA}`).replaceAll("'", `'${_AA}`), (Q) => `$${Q}`);
+function verifyPipelineSafety(command) {
+    let parsedTokens = shellParser.parse(command.replaceAll('"', `"${QUOTE_ESCAPE_CHAR}`).replaceAll("'", `'${SINGLE_QUOTE_ESCAPE_CHAR}`), (token) => `$${token}`);
     
-    for (let Q = 0; Q < B.length; Q++) {
-        let D = B[Q];
-        let I = B[Q + 1];
+    for (let index = 0; index < parsedTokens.length; index++) {
+        let currentToken = parsedTokens[index];
+        let nextToken = parsedTokens[index + 1];
         
-        if (D === void 0) continue;
-        if (typeof D === "string") continue;
-        if ("comment" in D) return false;
+        if (currentToken === void 0) continue;
+        if (typeof currentToken === "string") continue;
+        if ("comment" in currentToken) return false;
         
-        if ("op" in D) {
-            if (D.op === "glob") continue;
-            else if (uM2.has(D.op)) continue;
-            else if (D.op === ">&") {
-                if (I !== void 0 && typeof I === "string" && Gc.has(I.trim())) continue;
-            } else if (D.op === ">") {
-                if (I !== void 0 && typeof I === "string" && I.trim() === "/dev/null") continue;
-                if (I !== void 0 && typeof I === "string" && I.trim().startsWith("&") && 
-                    I.trim().length > 1 && Gc.has(I.trim().slice(1))) continue;
+        if ("op" in currentToken) {
+            if (currentToken.op === "glob") continue;
+            else if (CONTROL_OPERATORS.has(currentToken.op)) continue;
+            else if (currentToken.op === ">&") {
+                if (nextToken !== void 0 && typeof nextToken === "string" && VALID_FILE_DESCRIPTORS.has(nextToken.trim())) continue;
+            } else if (currentToken.op === ">") {
+                if (nextToken !== void 0 && typeof nextToken === "string" && nextToken.trim() === "/dev/null") continue;
+                if (nextToken !== void 0 && typeof nextToken === "string" && nextToken.trim().startsWith("&") && 
+                    nextToken.trim().length > 1 && VALID_FILE_DESCRIPTORS.has(nextToken.trim().slice(1))) continue;
             }
             return false;
         }
@@ -43,215 +50,215 @@ function oU6(A) {
 }
 
 // Multi-command detection
-function mM2(A) {
-    return Ik(A).length > 1 && !oU6(A);
+function hasMultipleCommands(command) {
+    return parseCommandList(command).length > 1 && !verifyPipelineSafety(command);
 }
 
 // Pipe right-hand command permission verification
-async function tU6(A, B, Q, D) {
-    let I = B.join(" ").trim();
-    let G = await D({ ...A, command: I });
+async function checkPipeRightHandPermissions(input, leftCommands, rightCommands, checkPermissionFunction) {
+    let leftCommandString = leftCommands.join(" ").trim();
+    let leftPermissionResult = await checkPermissionFunction({ ...input, command: leftCommandString });
     
-    let Z = xAA(Q).every((J) => {
-        return _9.isReadOnly({ ...A, command: J.trim() });
+    let isRightReadOnly = splitPipeCommands(rightCommands).every((command) => {
+        return bashToolImplementation.isReadOnly({ ...input, command: command.trim() });
     });
     
-    let F = Q.join(" ").trim();
-    let Y = Z ? 
-        { behavior: "allow", updatedInput: A, decisionReason: { type: "other", reason: "Pipe right-hand command is read-only" } } :
-        { behavior: "ask", message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`, decisionReason: { type: "other", reason: "Pipe right-hand command is not read-only" } };
+    let rightCommandString = rightCommands.join(" ").trim();
+    let rightPermissionResult = isRightReadOnly ? 
+        { behavior: "allow", updatedInput: input, decisionReason: { type: "other", reason: "Pipe right-hand command is read-only" } } :
+        { behavior: "ask", message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`, decisionReason: { type: "other", reason: "Pipe right-hand command is not read-only" } };
     
-    let W = new Map([[I, G], [F, Y]]);
+    let resultMap = new Map([[leftCommandString, leftPermissionResult], [rightCommandString, rightPermissionResult]]);
     
-    if (G.behavior === "deny") {
+    if (leftPermissionResult.behavior === "deny") {
         return {
             behavior: "deny",
-            message: G.message,
-            decisionReason: { type: "subcommandResults", reasons: W },
+            message: leftPermissionResult.message,
+            decisionReason: { type: "subcommandResults", reasons: resultMap },
             ruleSuggestions: null
         };
     }
     
-    if (G.behavior === "allow" && Y.behavior === "allow") {
+    if (leftPermissionResult.behavior === "allow" && rightPermissionResult.behavior === "allow") {
         return {
             behavior: "allow",
-            updatedInput: A,
-            decisionReason: { type: "subcommandResults", reasons: W }
+            updatedInput: input,
+            decisionReason: { type: "subcommandResults", reasons: resultMap }
         };
     }
     
-    let C = Y.behavior === "allow" ? (G.behavior !== "allow" ? G.ruleSuggestions : void 0) : null;
+    let ruleSuggestions = rightPermissionResult.behavior === "allow" ? (leftPermissionResult.behavior !== "allow" ? leftPermissionResult.ruleSuggestions : void 0) : null;
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
-        decisionReason: { type: "subcommandResults", reasons: W },
-        ruleSuggestions: C
+        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
+        decisionReason: { type: "subcommandResults", reasons: resultMap },
+        ruleSuggestions: ruleSuggestions
     };
 }
 
 // Pipe command permission check
-async function cM2(A, B) {
-    if (mM2(A.command)) {
+async function checkPipePermissions(input, context) {
+    if (hasMultipleCommands(input.command)) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
             decisionReason: { type: "other", reason: "Unsupported shell control operator" },
             ruleSuggestions: null
         };
     }
     
-    let Q = kAA(A.command);
-    let D = Q.findIndex((I) => I === "|");
+    let commandTokens = parseShellTokens(input.command);
+    let pipeIndex = commandTokens.findIndex((token) => token === "|");
     
-    if (D >= 0) {
-        let I = Q.slice(0, D);
-        let G = Q.slice(D + 1);
-        return tU6(A, I, G, B);
+    if (pipeIndex >= 0) {
+        let leftTokens = commandTokens.slice(0, pipeIndex);
+        let rightTokens = commandTokens.slice(pipeIndex + 1);
+        return checkPipeRightHandPermissions(input, leftTokens, rightTokens, context);
     }
     
     return null;
 }
 
 // Directory access validation for cd command
-function fAA(A, B, Q, D) {
-    let I = Ik(A.command);
+function validateCdAccess(input, currentDir, allowedDir, allowedDirs) {
+    let commands = parseCommandList(input.command);
     
-    for (let G of I) {
-        let [Z, ...F] = G.split(" ");
+    for (let command of commands) {
+        let [commandName, ...args] = command.split(" ");
         
-        if (Z === "cd" && F.length > 0) {
-            let Y = F.join(" ").replace(/^['"]|['"]$/g, "");
-            let W = eU6(Y) ? Y : Aw6(B, Y);
+        if (commandName === "cd" && args.length > 0) {
+            let targetPath = args.join(" ").replace(/^['"]|['"]$/g, "");
+            let resolvedPath = isAbsolute(targetPath) ? targetPath : resolve(currentDir, targetPath);
             
-            if (!WY(W, D)) {
+            if (!isPathAllowed(resolvedPath, allowedDirs)) {
                 return {
                     behavior: "ask",
-                    message: `cd to '${W}' was blocked. For security, ${A2} may only change directories to child directories of the allowed working directories for this session (including '${Q}').`
+                    message: `cd to '${resolvedPath}' was blocked. For security, ${TOOL_NAME} may only change directories to child directories of the allowed working directories for this session (including '${allowedDir}').`
                 };
             }
         }
     }
     
-    return { behavior: "allow", updatedInput: A };
+    return { behavior: "allow", updatedInput: input };
 }
 
 // Rule suggestion generation
-const Bw6 = (A) => `${A}:*`;
+const createRulePattern = (command) => `${command}:*`;
 
-function dH1(A) {
-    return [{ toolName: _9.name, ruleContent: A }];
+function createRuleSuggestion(ruleContent) {
+    return [{ toolName: bashToolImplementation.name, ruleContent: ruleContent }];
 }
 
-function Qw6(A) {
-    return [{ toolName: _9.name, ruleContent: Bw6(A) }];
+function createRuleSuggestionWithPattern(command) {
+    return [{ toolName: bashToolImplementation.name, ruleContent: createRulePattern(command) }];
 }
 
 // Command pattern parsing
-const vAA = (A) => {
-    return A.match(/^(.+):\*$/)?.[1] ?? null;
+const extractCommandFromPattern = (pattern) => {
+    return pattern.match(/^(.+):\*$/)?.[1] ?? null;
 };
 
-function Dw6(A) {
-    let B = vAA(A);
-    if (B !== null) {
-        return { type: "prefix", prefix: B };
+function parseCommandPattern(pattern) {
+    let extractedCommand = extractCommandFromPattern(pattern);
+    if (extractedCommand !== null) {
+        return { type: "prefix", prefix: extractedCommand };
     } else {
-        return { type: "exact", command: A };
+        return { type: "exact", command: pattern };
     }
 }
 
 // Rule matching
-function pM2(A, B, Q) {
-    let D = A.command.trim();
+function findMatchingRules(input, rulesMap, matchType) {
+    let commandText = input.command.trim();
     
-    return Array.from(B.entries()).filter(([I]) => {
-        let G = Dw6(I);
+    return Array.from(rulesMap.entries()).filter(([rulePattern]) => {
+        let parsedPattern = parseCommandPattern(rulePattern);
         
-        switch (G.type) {
+        switch (parsedPattern.type) {
             case "exact":
-                return G.command === D;
+                return parsedPattern.command === commandText;
             case "prefix":
-                switch (Q) {
+                switch (matchType) {
                     case "exact":
-                        return G.prefix === D;
+                        return parsedPattern.prefix === commandText;
                     case "prefix":
-                        return D.startsWith(G.prefix);
+                        return commandText.startsWith(parsedPattern.prefix);
                 }
         }
-    }).map(([, I]) => I);
+    }).map(([, ruleValue]) => ruleValue);
 }
 
-function iM2(A, B, Q) {
-    let D = db(B, _9, "deny");
-    let I = pM2(A, D, Q);
-    let G = db(B, _9, "allow");
-    let Z = pM2(A, G, Q);
+function getRuleMatches(input, rulesContext, matchType) {
+    let denyRules = getRulesByType(rulesContext, TOOL_NAME, "deny");
+    let matchingDenyRules = findMatchingRules(input, denyRules, matchType);
+    let allowRules = getRulesByType(rulesContext, TOOL_NAME, "allow");
+    let matchingAllowRules = findMatchingRules(input, allowRules, matchType);
     
-    return { matchingDenyRules: I, matchingAllowRules: Z };
+    return { matchingDenyRules, matchingAllowRules };
 }
 
 // Permission decision logic
-const bAA = (A, B) => {
-    let Q = A.command.trim();
-    let { matchingDenyRules: D, matchingAllowRules: I } = iM2(A, B, "exact");
+const makePermissionDecision = (input, context) => {
+    let commandText = input.command.trim();
+    let { matchingDenyRules, matchingAllowRules } = getRuleMatches(input, context, "exact");
     
-    if (D[0] !== void 0) {
+    if (matchingDenyRules[0] !== void 0) {
         return {
             behavior: "deny",
-            message: `Permission to use ${_9.name} with command ${Q} has been denied.`,
-            decisionReason: { type: "rule", rule: D[0] },
+            message: `Permission to use ${bashToolImplementation.name} with command ${commandText} has been denied.`,
+            decisionReason: { type: "rule", rule: matchingDenyRules[0] },
             ruleSuggestions: null
         };
     }
     
-    if (I[0] !== void 0) {
+    if (matchingAllowRules[0] !== void 0) {
         return {
             behavior: "allow",
-            updatedInput: A,
-            decisionReason: { type: "rule", rule: I[0] }
+            updatedInput: input,
+            decisionReason: { type: "rule", rule: matchingAllowRules[0] }
         };
     }
     
-    if (_9.isReadOnly(A)) {
+    if (bashToolImplementation.isReadOnly(input)) {
         return {
             behavior: "allow",
-            updatedInput: A,
+            updatedInput: input,
             decisionReason: { type: "other", reason: "Sandboxed command is allowed" }
         };
     }
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
-        ruleSuggestions: dH1(Q)
+        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
+        ruleSuggestions: createRuleSuggestionWithPattern(commandText)
     };
 };
 
-const nM2 = (A, B) => {
-    let Q = A.command.trim();
+const handleSpecialCommands = (input, allowedDirs) => {
+    let commandText = input.command.trim();
     
     // Special handling for cd command
-    if (Q.split(" ")[0] === "cd") {
-        if (fAA(A, dA(), U9(), B).behavior === "allow") {
+    if (commandText.split(" ")[0] === "cd") {
+        if (validateCdAccess(input, getCurrentDirectory(), getWorkingDirectory(), allowedDirs).behavior === "allow") {
             return {
                 behavior: "allow",
-                updatedInput: A,
+                updatedInput: input,
                 decisionReason: { type: "other", reason: "cd command is allowed" }
             };
         }
     }
     
-    let D = bAA(A, B);
-    if (D.behavior === "deny") return D;
+    let permissionResult = makePermissionDecision(input, allowedDirs);
+    if (permissionResult.behavior === "deny") return permissionResult;
     
-    let { matchingDenyRules: I, matchingAllowRules: G } = iM2(A, B, "prefix");
+    let { matchingDenyRules: prefixDenyRules, matchingAllowRules: prefixAllowRules } = getRuleMatches(input, allowedDirs, "prefix");
     
-    if (I[0] !== void 0) {
+    if (prefixDenyRules[0] !== void 0) {
         return {
             behavior: "deny",
-            message: `Permission to use ${_9.name} with command ${Q} has been denied.`,
-            decisionReason: { type: "rule", rule: I[0] },
+            message: `Permission to use ${bashToolImplementation.name} with command ${commandText} has been denied.`,
+            decisionReason: { type: "rule", rule: prefixDenyRules[0] },
             ruleSuggestions: null
         };
     }
@@ -268,7 +275,7 @@ const nM2 = (A, B) => {
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
+        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
         ruleSuggestions: dH1(Q)
     };
 };
@@ -284,7 +291,7 @@ function lM2(A, B, Q) {
     if (Q === null || Q === void 0) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
             decisionReason: { type: "other", reason: "Command prefix query failed" },
             ruleSuggestions: dH1(A.command)
         };
@@ -293,7 +300,7 @@ function lM2(A, B, Q) {
     if (Q.commandInjectionDetected) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
             decisionReason: { type: "other", reason: "Potential command injection detected" },
             ruleSuggestions: null
         };
@@ -322,7 +329,7 @@ const gAA = async (A, B, Q = hM2) => {
     if (G.filter((E) => E.startsWith("cd ")).length > 1) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
             decisionReason: { type: "other", reason: "Multiple cd commands detected" },
             ruleSuggestions: null
         };
@@ -336,7 +343,7 @@ const gAA = async (A, B, Q = hM2) => {
     if (F.find((E) => E.behavior === "deny") !== void 0) {
         return {
             behavior: "deny",
-            message: `Permission to use ${_9.name} with command ${A.command} has been denied.`,
+            message: `Permission to use ${bashToolImplementation.name} with command ${A.command} has been denied.`,
             ruleSuggestions: null,
             decisionReason: { type: "subcommandResults", reasons: new Map(F.map((E, w) => [G[w], E])) }
         };
@@ -397,7 +404,7 @@ const gAA = async (A, B, Q = hM2) => {
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${_9.name}, but you haven't granted it yet.`,
+        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
         decisionReason: { type: "subcommandResults", reasons: X },
         ruleSuggestions: K
     };

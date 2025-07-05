@@ -2,114 +2,114 @@
 // Reconstructed from cli.js lines 1587-1596
 
 // Import path utilities
-const { dirname: lw6, isAbsolute: tH1, relative: iw6, resolve: nw6, sep: aw6 } = require("path");
+const { dirname: pathDirname, isAbsolute: pathIsAbsolute, relative: pathRelative, resolve: pathResolve, sep: pathSeparator } = require("path");
 
 // Utility function for array interspersing
-function nY(A, B) {
-    return A.flatMap((Q, D) => D ? [B(D), Q] : [Q]);
+function intersperseArray(array, separator) {
+    return array.flatMap((item, index) => index ? [separator(index), item] : [item]);
 }
 
 // Base diff class
-function JE() {}
+function BaseDiff() {}
 
-JE.prototype = {
-    diff: function A(B, Q) {
-        var D, I = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
-        var G = I.callback;
+BaseDiff.prototype = {
+    diff: function diffMethod(oldString, newString) {
+        var result, options = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
+        var callback = options.callback;
         
-        if (typeof I === "function") {
-            G = I;
-            I = {};
+        if (typeof options === "function") {
+            callback = options;
+            options = {};
         }
         
-        var Z = this;
+        var self = this;
         
-        function F(O) {
-            if (O = Z.postProcess(O, I), G) {
-                return setTimeout(function() { G(O); }, 0), true;
+        function processResult(diffResult) {
+            if (diffResult = self.postProcess(diffResult, options), callback) {
+                return setTimeout(function() { callback(diffResult); }, 0), true;
             } else {
-                return O;
+                return diffResult;
             }
         }
         
-        B = this.castInput(B, I);
-        Q = this.castInput(Q, I);
-        B = this.removeEmpty(this.tokenize(B, I));
-        Q = this.removeEmpty(this.tokenize(Q, I));
+        oldString = this.castInput(oldString, options);
+        newString = this.castInput(newString, options);
+        oldString = this.removeEmpty(this.tokenize(oldString, options));
+        newString = this.removeEmpty(this.tokenize(newString, options));
         
-        var Y = Q.length;
-        var W = B.length;
-        var C = 1;
-        var J = Y + W;
+        var newLength = newString.length;
+        var oldLength = oldString.length;
+        var currentDiagonal = 1;
+        var maxEditLength = newLength + oldLength;
         
-        if (I.maxEditLength != null) {
-            J = Math.min(J, I.maxEditLength);
+        if (options.maxEditLength != null) {
+            maxEditLength = Math.min(maxEditLength, options.maxEditLength);
         }
         
-        var X = (D = I.timeout) !== null && D !== void 0 ? D : 1 / 0;
-        var V = Date.now() + X;
-        var K = [{ oldPos: -1, lastComponent: void 0 }];
-        var E = this.extractCommon(K[0], Q, B, 0, I);
+        var timeout = (result = options.timeout) !== null && result !== void 0 ? result : 1 / 0;
+        var timeoutAt = Date.now() + timeout;
+        var bestPath = [{ oldPos: -1, lastComponent: void 0 }];
+        var commonPrefixLength = this.extractCommon(bestPath[0], newString, oldString, 0, options);
         
-        if (K[0].oldPos + 1 >= W && E + 1 >= Y) {
-            return F(oM2(Z, K[0].lastComponent, Q, B, Z.useLongestToken));
+        if (bestPath[0].oldPos + 1 >= oldLength && commonPrefixLength + 1 >= newLength) {
+            return processResult(buildValues(self, bestPath[0].lastComponent, newString, oldString, self.useLongestToken));
         }
         
-        var w = -1 / 0;
-        var q = 1 / 0;
+        var minDiagonal = -1 / 0;
+        var maxDiagonal = 1 / 0;
         
-        function R() {
-            for (var O = Math.max(w, -C); O <= Math.min(q, C); O += 2) {
-                var L = void 0;
-                var S = K[O - 1];
-                var j = K[O + 1];
+        function searchForPath() {
+            for (var diagonal = Math.max(minDiagonal, -currentDiagonal); diagonal <= Math.min(maxDiagonal, currentDiagonal); diagonal += 2) {
+                var path = void 0;
+                var leftPath = bestPath[diagonal - 1];
+                var rightPath = bestPath[diagonal + 1];
                 
-                if (S) K[O - 1] = void 0;
+                if (leftPath) bestPath[diagonal - 1] = void 0;
                 
-                var d = false;
-                if (j) {
-                    var y = j.oldPos - O;
-                    d = j && 0 <= y && y < Y;
+                var shouldRemove = false;
+                if (rightPath) {
+                    var removePath = rightPath.oldPos - diagonal;
+                    shouldRemove = rightPath && 0 <= removePath && removePath < newLength;
                 }
                 
-                var a = S && S.oldPos + 1 < W;
+                var shouldAdd = leftPath && leftPath.oldPos + 1 < oldLength;
                 
-                if (!d && !a) {
-                    K[O] = void 0;
+                if (!shouldRemove && !shouldAdd) {
+                    bestPath[diagonal] = void 0;
                     continue;
                 }
                 
-                if (!a || d && S.oldPos < j.oldPos) {
-                    L = Z.addToPath(j, true, false, 0, I);
+                if (!shouldAdd || shouldRemove && leftPath.oldPos < rightPath.oldPos) {
+                    path = self.addToPath(rightPath, true, false, 0, options);
                 } else {
-                    L = Z.addToPath(S, false, true, 1, I);
+                    path = self.addToPath(leftPath, false, true, 1, options);
                 }
                 
-                if (E = Z.extractCommon(L, Q, B, O, I), L.oldPos + 1 >= W && E + 1 >= Y) {
-                    return F(oM2(Z, L.lastComponent, Q, B, Z.useLongestToken));
+                if (commonPrefixLength = self.extractCommon(path, newString, oldString, diagonal, options), path.oldPos + 1 >= oldLength && commonPrefixLength + 1 >= newLength) {
+                    return processResult(buildValues(self, path.lastComponent, newString, oldString, self.useLongestToken));
                 } else {
-                    if (K[O] = L, L.oldPos + 1 >= W) {
-                        q = Math.min(q, O - 1);
+                    if (bestPath[diagonal] = path, path.oldPos + 1 >= oldLength) {
+                        maxDiagonal = Math.min(maxDiagonal, diagonal - 1);
                     }
-                    if (E + 1 >= Y) {
-                        w = Math.max(w, O + 1);
+                    if (commonPrefixLength + 1 >= newLength) {
+                        minDiagonal = Math.max(minDiagonal, diagonal + 1);
                     }
                 }
             }
-            C++;
+            currentDiagonal++;
         }
         
-        if (G) {
-            (function O() {
+        if (callback) {
+            (function executeCallback() {
                 setTimeout(function() {
-                    if (C > J || Date.now() > V) return G();
-                    if (!R()) O();
+                    if (currentDiagonal > maxEditLength || Date.now() > timeoutAt) return callback();
+                    if (!searchForPath()) executeCallback();
                 }, 0);
             })();
         } else {
-            while (C <= J && Date.now() <= V) {
-                var M = R();
-                if (M) return M;
+            while (currentDiagonal <= maxEditLength && Date.now() <= timeoutAt) {
+                var result = searchForPath();
+                if (result) return result;
             }
         }
     },

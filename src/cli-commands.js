@@ -1,5 +1,9 @@
 // CLI commands implementation from cli.js (lines 2588-2597)
 
+const { MCPConfigManager } = require('./mcp-config');
+const { telemetryManager } = require('./telemetry');
+const { configManager } = require('./config-management');
+
 // Remove command - removes MCP server configuration
 export async function removeCommand(serverName, options) {
   try {
@@ -11,15 +15,15 @@ export async function removeCommand(serverName, options) {
       process.exit(1);
     } else if (scopes.length === 1) {
       const scope = scopes[0];
-      await E1("tengu_mcp_delete", { name: serverName, scope: scope });
-      jE1(serverName, scope);
+      await telemetryManager.sendEvent("tengu_mcp_delete", { name: serverName, scope: scope });
+      removeServerFromScope(serverName, scope);
       process.stdout.write(`Removed MCP server "${serverName}" from ${scope} config\n`);
       process.exit(0);
     } else {
       // Multiple scopes found
       process.stderr.write(`MCP server "${serverName}" exists in multiple scopes:\n`);
       scopes.forEach((scope) => {
-        process.stderr.write(`  - ${_E1(scope)}\n`);
+        process.stderr.write(`  - ${formatScopeName(scope)}\n`);
       });
       process.stderr.write(`\nTo remove from a specific scope, use:\n`);
       scopes.forEach((scope) => {
@@ -35,8 +39,8 @@ export async function removeCommand(serverName, options) {
 
 // List command - lists all configured MCP servers
 export async function listCommand() {
-  await E1("tengu_mcp_list", {});
-  const servers = gX();
+  await telemetryManager.sendEvent("tengu_mcp_list", {});
+  const servers = getAllServers();
   
   if (Object.keys(servers).length === 0) {
     console.log("No MCP servers configured. Use `claude mcp add` to add a server.");
@@ -57,8 +61,8 @@ export async function listCommand() {
 
 // Get command - gets details about a specific MCP server
 export async function getCommand(serverName) {
-  await E1("tengu_mcp_get", { name: serverName });
-  const serverInfo = yE1(serverName);
+  await telemetryManager.sendEvent("tengu_mcp_get", { name: serverName });
+  const serverInfo = getServerInfo(serverName);
   
   if (!serverInfo) {
     console.error(`No MCP server found with name: ${serverName}`);
@@ -66,7 +70,7 @@ export async function getCommand(serverName) {
   }
   
   console.log(`${serverName}:`);
-  console.log(`  Scope: ${_E1(serverInfo.scope)}`);
+  console.log(`  Scope: ${formatScopeName(serverInfo.scope)}`);
   
   if (serverInfo.type === "sse") {
     console.log("  Type: sse");

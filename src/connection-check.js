@@ -1,34 +1,34 @@
 // 接続チェック機能
 // 元ファイル: cli.js 2178-2187行より復元
 
-import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // x9 として参照されている
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 
 // useDelayedState カスタムフック
-function Sv2(A, B, Q) {
-    let [D, I] = useState(A);
-    let G = useRef();
-    let Z = useRef(A);
+function useDelayedState(initialValue, dependencies, delayMs) {
+    let [state, setState] = useState(initialValue);
+    let timeoutRef = useRef();
+    let valueRef = useRef(initialValue);
     
     useEffect(() => {
-        Z.current = A;
-    }, [A]);
+        valueRef.current = initialValue;
+    }, [initialValue]);
     
     useEffect(() => {
-        if (G.current) clearTimeout(G.current);
-        G.current = setTimeout(() => {
-            I(Z.current());
-        }, Q);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
+            setState(valueRef.current());
+        }, delayMs);
         return () => {
-            if (G.current) clearTimeout(G.current);
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
         };
-    }, [...B, Q]);
+    }, [...dependencies, delayMs]);
     
-    return D;
+    return state;
 }
 
 // インターネット接続チェック機能
-async function Sj6() {
+async function checkInternetConnection() {
     try {
         // Bedrock/Vertex環境の場合は常にtrueを返す
         if (process.env.CLAUDE_CODE_USE_BEDROCK || process.env.CLAUDE_CODE_USE_VERTEX) {
@@ -50,128 +50,128 @@ async function Sj6() {
 }
 
 // 接続状態管理フック
-function v9A(A) {
-    // デモモードまたは開発モードの判定（Mj関数要実装）
-    let B = Mj() ? 30000 : 1000; // 30秒 : 1秒間隔
-    let Q = A ?? B;
-    let [D, I] = useState(null);
+function useConnectionState(intervalMs) {
+    // デモモードまたは開発モードの判定（isDemoMode関数要実装）
+    let defaultInterval = isDemoMode() ? 30000 : 1000; // 30秒 : 1秒間隔
+    let interval = intervalMs ?? defaultInterval;
+    let [isConnected, setIsConnected] = useState(null);
     
     useEffect(() => {
-        let G = true;
+        let isMounted = true;
         
         // 非必須トラフィック無効化チェック
         if (process.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC) {
             return;
         }
         
-        let Z = async () => {
-            if (!G) return;
-            let Y = await Sj6();
-            if (G) I(Y);
+        let checkConnection = async () => {
+            if (!isMounted) return;
+            let connectionStatus = await checkInternetConnection();
+            if (isMounted) setIsConnected(connectionStatus);
         };
         
-        Z();
-        let F = setInterval(Z, Q);
+        checkConnection();
+        let intervalId = setInterval(checkConnection, interval);
         
         return () => {
-            G = false;
-            clearInterval(F);
+            isMounted = false;
+            clearInterval(intervalId);
         };
-    }, [Q]);
+    }, [interval]);
     
-    return { isConnected: D };
+    return { isConnected };
 }
 
 // Preflight接続チェック
-async function fj6() {
+async function preflightConnectionCheck() {
     try {
-        let A = [
+        let testUrls = [
             "https://api.anthropic.com/api/hello",
             "https://console.anthropic.com/v1/oauth/hello"
         ];
         
-        let B = async (I) => {
+        let testConnection = async (url) => {
             try {
-                let G = await axios.get(I, {
+                let response = await axios.get(url, {
                     headers: {
-                        "User-Agent": MO() // User-Agent生成関数（要実装）
+                        "User-Agent": getUserAgent() // User-Agent生成関数（要実装）
                     }
                 });
                 
-                if (G.status !== 200) {
+                if (response.status !== 200) {
                     return {
                         success: false,
-                        error: `Failed to connect to ${new URL(I).hostname}: Status ${G.status}`
+                        error: `Failed to connect to ${new URL(url).hostname}: Status ${response.status}`
                     };
                 }
                 
                 return { success: true };
-            } catch (G) {
+            } catch (error) {
                 return {
                     success: false,
-                    error: `Failed to connect to ${new URL(I).hostname}: ${G instanceof Error ? G.code || G.message : String(G)}`
+                    error: `Failed to connect to ${new URL(url).hostname}: ${error instanceof Error ? error.code || error.message : String(error)}`
                 };
             }
         };
         
-        let D = (await Promise.all(A.map(B))).find((I) => !I.success);
+        let failedResult = (await Promise.all(testUrls.map(testConnection))).find((result) => !result.success);
         
-        if (D) {
-            E1("tengu_preflight_check_failed", {
+        if (failedResult) {
+            recordTelemetryEvent("tengu_preflight_check_failed", {
                 isConnectivityError: false,
-                hasErrorMessage: !!D.error
+                hasErrorMessage: !!failedResult.error
             });
         }
         
-        return D || { success: true };
-    } catch (A) {
-        h1(A); // エラーハンドラー（要実装）
-        E1("tengu_preflight_check_failed", {
+        return failedResult || { success: true };
+    } catch (error) {
+        logError(error); // エラーハンドラー（要実装）
+        recordTelemetryEvent("tengu_preflight_check_failed", {
             isConnectivityError: true
         });
         
         return {
             success: false,
-            error: `Connectivity check error: ${A instanceof Error ? A.code || A.message : String(A)}`
+            error: `Connectivity check error: ${error instanceof Error ? error.code || error.message : String(error)}`
         };
     }
 }
 
 // 接続チェックUIコンポーネント
-function kv2({ onSuccess }) {
-    let [B, Q] = useState(null);
-    let [D, I] = useState(true);
-    let G = yv2(1000) && D; // 遅延表示フック（要実装）
+function ConnectionCheckComponent({ onSuccess }) {
+    let [result, setResult] = useState(null);
+    let [isLoading, setIsLoading] = useState(true);
+    let shouldShow = useDelay(1000) && isLoading; // 遅延表示フック（要実装）
     
     useEffect(() => {
-        async function Z() {
-            let F = await fj6();
-            Q(F);
-            I(false);
+        async function runCheck() {
+            let checkResult = await preflightConnectionCheck();
+            setResult(checkResult);
+            setIsLoading(false);
         }
-        Z();
+        runCheck();
     }, []);
     
     useEffect(() => {
-        if (B?.success) {
+        if (result?.success) {
             onSuccess();
-        } else if (B && !B.success) {
-            let Z = setTimeout(() => process.exit(1), 100);
-            return () => clearTimeout(Z);
+        } else if (result && !result.success) {
+            let timeoutId = setTimeout(() => process.exit(1), 100);
+            return () => clearTimeout(timeoutId);
         }
-    }, [B, onSuccess]);
+    }, [result, onSuccess]);
     
     return (
         <div style={{ flexDirection: "column", gap: 1, paddingLeft: 1 }}>
-            {D && G ? (
+            {isLoading && shouldShow ? (
                 <div style={{ paddingLeft: 1 }}>
-                    <$G />
+                    <LoadingSpinner />
                     <span>Checking connectivity...</span>
                 </div>
-            ) : (!B?.success && !D && (
+            ) : (!result?.success && !isLoading && (
                 <div style={{ flexDirection: "column", gap: 1 }}>
                     <span style={{ color: "red" }}>Unable to connect to Anthropic services</span>
-                    <span style={{ color: "red" }}>{B?.error}</span>
+                    <span style={{ color: "red" }}>{result?.error}</span>
                     <div style={{ flexDirection: "column", gap: 1 }}>
                         <span>Please check your internet connection and network settings.</span>
                         <span>
@@ -188,10 +188,52 @@ function kv2({ onSuccess }) {
     );
 }
 
+// スタブ関数定義（実際の実装が必要）
+function isDemoMode() {
+    // TODO: 実際のデモモード判定ロジックを実装
+    return false;
+}
+
+function getUserAgent() {
+    // TODO: 実際のUser-Agent生成ロジックを実装
+    return 'Claude-Code/1.0';
+}
+
+function recordTelemetryEvent(eventName, data) {
+    // TODO: 実際のテレメトリーロジックを実装
+    console.log(`Telemetry: ${eventName}`, data);
+}
+
+function logError(error) {
+    // TODO: 実際のエラーログロジックを実装
+    console.error('Error:', error);
+}
+
+function useDelay(delayMs) {
+    // TODO: 実際の遅延フックを実装
+    const [isDelayed, setIsDelayed] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setIsDelayed(true), delayMs);
+        return () => clearTimeout(timer);
+    }, [delayMs]);
+    return isDelayed;
+}
+
+function LoadingSpinner() {
+    // TODO: 実際のローディングスピナーコンポーネントを実装
+    return <span>...</span>;
+}
+
 module.exports = {
-    Sv2,
-    Sj6,
-    v9A,
-    fj6,
-    kv2
+    useDelayedState,
+    checkInternetConnection,
+    useConnectionState,
+    preflightConnectionCheck,
+    ConnectionCheckComponent,
+    isDemoMode,
+    getUserAgent,
+    recordTelemetryEvent,
+    logError,
+    useDelay,
+    LoadingSpinner
 };

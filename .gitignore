@@ -6,3 +6,4 @@ sdk.mjs
 yoga.wasm
 scripts/
 vendor/
+package-lock.json

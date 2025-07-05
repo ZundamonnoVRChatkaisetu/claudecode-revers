@@ -2,7 +2,7 @@
 // 元ファイル: cli.js 2178-2187行より復元
 
 // アクティビティトラッキングクラス（シングルトンパターン）
-class Fp {
+class ActivityTracker {
     constructor() {
         this.activeOperations = new Set();
         this.lastUserActivityTime = 0;
@@ -14,21 +14,21 @@ class Fp {
     static instance = null;
 
     static getInstance() {
-        if (!Fp.instance) {
-            Fp.instance = new Fp();
+        if (!ActivityTracker.instance) {
+            ActivityTracker.instance = new ActivityTracker();
         }
-        return Fp.instance;
+        return ActivityTracker.instance;
     }
 
     recordUserActivity() {
         if (!this.isCLIActive && this.lastUserActivityTime !== 0) {
-            let B = (Date.now() - this.lastUserActivityTime) / 1000;
-            if (B > 0) {
-                let Q = Nq1(); // テレメトリー関数（要実装）
-                if (Q) {
-                    let D = this.USER_ACTIVITY_TIMEOUT_MS / 1000;
-                    if (B < D) {
-                        Q.add(B, { type: "user" });
+            let elapsedSeconds = (Date.now() - this.lastUserActivityTime) / 1000;
+            if (elapsedSeconds > 0) {
+                let telemetryManager = getTelemetryManager(); // テレメトリー関数（要実装）
+                if (telemetryManager) {
+                    let timeoutSeconds = this.USER_ACTIVITY_TIMEOUT_MS / 1000;
+                    if (elapsedSeconds < timeoutSeconds) {
+                        telemetryManager.add(elapsedSeconds, { type: "user" });
                     }
                 }
             }
@@ -36,40 +36,40 @@ class Fp {
         this.lastUserActivityTime = Date.now();
     }
 
-    startCLIActivity(A) {
-        if (this.activeOperations.has(A)) {
-            this.endCLIActivity(A);
+    startCLIActivity(operationId) {
+        if (this.activeOperations.has(operationId)) {
+            this.endCLIActivity(operationId);
         }
-        let B = this.activeOperations.size === 0;
-        this.activeOperations.add(A);
-        if (B) {
+        let wasInactive = this.activeOperations.size === 0;
+        this.activeOperations.add(operationId);
+        if (wasInactive) {
             this.isCLIActive = true;
             this.lastCLIRecordedTime = Date.now();
         }
     }
 
-    endCLIActivity(A) {
-        this.activeOperations.delete(A);
+    endCLIActivity(operationId) {
+        this.activeOperations.delete(operationId);
         if (this.activeOperations.size === 0) {
-            let B = Date.now();
-            let Q = (B - this.lastCLIRecordedTime) / 1000;
-            if (Q > 0) {
-                let D = Nq1(); // テレメトリー関数（要実装）
-                if (D) {
-                    D.add(Q, { type: "cli" });
+            let currentTime = Date.now();
+            let elapsedSeconds = (currentTime - this.lastCLIRecordedTime) / 1000;
+            if (elapsedSeconds > 0) {
+                let telemetryManager = getTelemetryManager(); // テレメトリー関数（要実装）
+                if (telemetryManager) {
+                    telemetryManager.add(elapsedSeconds, { type: "cli" });
                 }
             }
-            this.lastCLIRecordedTime = B;
+            this.lastCLIRecordedTime = currentTime;
             this.isCLIActive = false;
         }
     }
 
-    async trackOperation(A, B) {
-        this.startCLIActivity(A);
+    async trackOperation(operationId, operationFunction) {
+        this.startCLIActivity(operationId);
         try {
-            return await B();
+            return await operationFunction();
         } finally {
-            this.endCLIActivity(A);
+            this.endCLIActivity(operationId);
         }
     }
 
@@ -83,9 +83,16 @@ class Fp {
 }
 
 // グローバルインスタンス
-const r01 = Fp.getInstance();
+const activityTrackerInstance = ActivityTracker.getInstance();
+
+// テレメトリーマネージャー取得関数（要実装）
+function getTelemetryManager() {
+    // TODO: 実際のテレメトリーマネージャーを実装
+    return null;
+}
 
 module.exports = {
-    Fp,
-    activityTracker: r01
+    ActivityTracker,
+    activityTracker: activityTrackerInstance,
+    getTelemetryManager
 };

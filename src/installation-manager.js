@@ -41,16 +41,16 @@ const PACKAGE_INFO = {
 };
 
 // インストールタイプ検出
-async function n01() {
-    let A = process.argv[1] || "";
+async function detectInstallationType() {
+    let scriptPath = process.argv[1] || "";
     
     // 開発環境の検出
-    if (A.includes("/build-ant/") || A.includes("/build-external/")) {
+    if (scriptPath.includes("/build-ant/") || scriptPath.includes("/build-external/")) {
         return "development";
     }
     
     // ネイティブインストールの検出
-    if (A.includes("/.local/bin/claude")) {
+    if (scriptPath.includes("/.local/bin/claude")) {
         return "native";
     }
     

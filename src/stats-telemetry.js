@@ -32,7 +32,7 @@ let sessionStats = {
 /**
  * 時間フォーマット関数
  */
-function jj(milliseconds) {
+function formatTime(milliseconds) {
     const seconds = Math.round(milliseconds / 1000 * 100) / 100;
     return `${seconds}s`;
 }
@@ -40,70 +40,70 @@ function jj(milliseconds) {
 /**
  * API時間取得
  */
-function IS() {
+function getApiDuration() {
     return sessionStats.apiDuration;
 }
 
 /**
  * 経過時間取得
  */
-function Eq1() {
+function getElapsedTime() {
     return Date.now() - sessionStats.startTime;
 }
 
 /**
  * 追加行数取得
  */
-function tB1() {
+function getLinesAdded() {
     return sessionStats.linesAdded;
 }
 
 /**
  * 削除行数取得
  */
-function eB1() {
+function getLinesRemoved() {
     return sessionStats.linesRemoved;
 }
 
 /**
  * 入力トークン数取得
  */
-function Q8A() {
+function getTotalInputTokens() {
     return sessionStats.totalInputTokens;
 }
 
 /**
  * 出力トークン数取得
  */
-function D8A() {
+function getTotalOutputTokens() {
     return sessionStats.totalOutputTokens;
 }
 
 /**
  * キャッシュ作成トークン数取得
  */
-function G8A() {
+function getCacheCreationInputTokens() {
     return sessionStats.totalCacheCreationInputTokens;
 }
 
 /**
  * キャッシュ読み取りトークン数取得
  */
-function I8A() {
+function getCacheReadInputTokens() {
     return sessionStats.totalCacheReadInputTokens;
 }
 
 /**
  * Web検索リクエスト数取得
  */
-function Z8A() {
+function getWebSearchRequests() {
     return sessionStats.totalWebSearchRequests;
 }
 
 /**
  * セッションID取得
  */
-function PB() {
+function getSessionId() {
     return sessionStats.sessionId || generateSessionId();
 }
 
@@ -120,7 +120,7 @@ function generateSessionId() {
 /**
  * コスト計算関数（仮実装）
  */
-function tw() {
+function calculateCost() {
     // 簡略化されたコスト計算
     const inputCost = sessionStats.totalInputTokens * 0.001;
     const outputCost = sessionStats.totalOutputTokens * 0.003;
@@ -130,42 +130,42 @@ function tw() {
 /**
  * verbose モード判定
  */
-function $F1() {
+function isVerboseMode() {
     return process.env.CLAUDE_VERBOSE === 'true';
 }
 
 /**
  * セッション統計表示生成
  */
-function aAA() {
-    return `Total duration (API):  ${jj(IS())}
-Total duration (wall): ${jj(Eq1())}
-Total code changes:    ${tB1()} ${tB1() === 1 ? "line" : "lines"} added, ${eB1()} ${eB1() === 1 ? "line" : "lines"} removed`;
+function getSessionSummary() {
+    return `Total duration (API):  ${formatTime(getApiDuration())}
+Total duration (wall): ${formatTime(getElapsedTime())}
+Total code changes:    ${getLinesAdded()} ${getLinesAdded() === 1 ? "line" : "lines"} added, ${getLinesRemoved()} ${getLinesRemoved() === 1 ? "line" : "lines"} removed`;
 }
 
 /**
  * 統計情報取得
  */
-function oB() {
+function getStats() {
     return {
-        apiDuration: IS(),
-        wallDuration: Eq1(),
-        linesAdded: tB1(),
-        linesRemoved: eB1(),
-        totalInputTokens: Q8A(),
-        totalOutputTokens: D8A(),
-        totalCacheCreationInputTokens: G8A(),
-        totalCacheReadInputTokens: I8A(),
-        totalWebSearchRequests: Z8A(),
-        sessionId: PB(),
-        cost: tw()
+        apiDuration: getApiDuration(),
+        wallDuration: getElapsedTime(),
+        linesAdded: getLinesAdded(),
+        linesRemoved: getLinesRemoved(),
+        totalInputTokens: getTotalInputTokens(),
+        totalOutputTokens: getTotalOutputTokens(),
+        totalCacheCreationInputTokens: getCacheCreationInputTokens(),
+        totalCacheReadInputTokens: getCacheReadInputTokens(),
+        totalWebSearchRequests: getWebSearchRequests(),
+        sessionId: getSessionId(),
+        cost: calculateCost()
     };
 }
 
 /**
- * 統計保存（M6関数相当）
+ * 統計保存
  */
-function M6(stats) {
+function saveStats(stats) {
     sessionStats = { ...sessionStats, ...stats };
     
     // 統計をファイルに保存
@@ -178,10 +178,10 @@ function M6(stats) {
 }
 
 /**
- * 追加統計表示（nAA関数相当）
+ * 追加統計表示
  */
-function nAA() {
-    const cost = tw();
+function getCostSummary() {
+    const cost = calculateCost();
     if (cost > 0) {
         return `Total cost: $${cost.toFixed(4)}`;
     }
@@ -189,28 +189,28 @@ function nAA() {
 }
 
 /**
- * React useEffect相当の終了ハンドラー（JR2関数）
+ * 終了ハンドラー設定
  */
-function JR2() {
+function setupExitHandler() {
     const exitHandler = () => {
-        if ($F1()) {
-            process.stdout.write('\n' + aAA() + '\n');
+        if (isVerboseMode()) {
+            process.stdout.write('\n' + getSessionSummary() + '\n');
         }
         
-        const stats = oB();
-        M6({
+        const stats = getStats();
+        saveStats({
             ...stats,
-            lastCost: tw(),
-            lastAPIDuration: IS(),
-            lastDuration: Eq1(),
-            lastLinesAdded: tB1(),
-            lastLinesRemoved: eB1(),
-            lastTotalInputTokens: Q8A(),
-            lastTotalOutputTokens: D8A(),
-            lastTotalCacheCreationInputTokens: G8A(),
-            lastTotalCacheReadInputTokens: I8A(),
-            lastTotalWebSearchRequests: Z8A(),
-            lastSessionId: PB()
+            lastCost: calculateCost(),
+            lastAPIDuration: getApiDuration(),
+            lastDuration: getElapsedTime(),
+            lastLinesAdded: getLinesAdded(),
+            lastLinesRemoved: getLinesRemoved(),
+            lastTotalInputTokens: getTotalInputTokens(),
+            lastTotalOutputTokens: getTotalOutputTokens(),
+            lastTotalCacheCreationInputTokens: getCacheCreationInputTokens(),
+            lastTotalCacheReadInputTokens: getCacheReadInputTokens(),
+            lastTotalWebSearchRequests: getWebSearchRequests(),
+            lastSessionId: getSessionId()
         });
     };
     
