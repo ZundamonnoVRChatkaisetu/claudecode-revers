@@ -185,3 +185,4 @@
 - [x] 757-766行解析済み(src/todo-management.js)
 - [x] 747-756行解析済み(src/web-fetch.js)
 - [x] 727-746行解析済み (src/telemetry-config.js, src/initialization.js, src/ripgrep-loader.js)
+- [x] 707-726行解析済み (src/config-management.js, src/otel-setup.js, src/config-error-dialog.js, src/ui-theme.js, src/unordered-list.js, src/multi-select.js, src/ordered-list.js)

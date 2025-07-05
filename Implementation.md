@@ -3686,3 +3686,54 @@
     - MCP提供のツールを優先すべきであるという注意点
     - URLの要件、HTTPからHTTPSへの自動アップグレード
     - プロンプトの記述内容、読み取り専用であること、結果が要約される可能性
+- [x] 707-726行解析済み (src/config-management.js, src/otel-setup.js, src/config-error-dialog.js, src/ui-theme.js, src/unordered-list.js, src/multi-select.js, src/ordered-list.js)
+  - 処理内容: 設定管理とOpenTelemetryセットアップの実装
+    - `wF1`関数: 配列型設定キーへの値の追加（グローバル/プロジェクト）
+      - tengu_config_addメトリクス送信
+      - 設定キーのバリデーション
+      - Setを使用した重複排除
+      - ソート済み配列の保存
+    - `aU0`関数: 配列型設定キーからの値の削除
+      - tengu_config_removeメトリクス送信
+      - フィルタリングによる削除
+      - ソート済み配列の保存
+    - `S0`関数: グローバル設定の保存
+      - ロック付き保存とフォールバック処理
+      - プロジェクト設定の保持
+      - キャッシュのクリア
+    - `Jq`オブジェクト: 設定キャッシュ（config、mtime）
+    - `Uu1`関数: installMethodとautoUpdatesの追加
+      - autoUpdaterStatusに基づくinstallMethod決定
+      - local、native、global、unknownの分類
+    - `WA`関数: グローバル設定の読み取り（キャッシュ付き）
+      - mtimeベースのキャッシュ有効性チェック
+      - installMethod/autoUpdatesの自動追加
+    - `NF1`関数: カスタムAPIキーの承認状態確認
+      - approved、rejected、newの3状態
+    - `rU0`関数: ロックなし設定書き込み
+      - デフォルト値と同じ項目の除外
+    - `sU0`関数: ロック付き設定書き込み
+      - proper-lockfileによるロック取得
+      - バックアップ作成
+      - アトミックな書き込み
+    - `Nu1`フラグ: 設定アクセス制御
+    - `oU0`関数: 設定へのアクセス許可
+    - `sR`関数: 設定ファイル読み取り
+      - 破損時のエラーハンドリング
+      - バックアップファイルの案内
+      - デフォルト値へのフォールバック
+    - `tU0`: プロジェクトルートのメモ化
+      - git rev-parse --show-toplevel使用
+    - `oB`関数: プロジェクト設定取得
+    - `M6`関数: プロジェクト設定保存
+    - その他の設定管理関数（qF1、$F1、LBQ、Lu1等）
+    - OTelセットアップ（Ho0関数）:
+      - メトリクスエクスポーター設定
+      - ログエクスポーター設定
+      - 内部テレメトリエクスポーター
+      - リソース情報の設定
+      - シャットダウンハンドラー
+    - 設定エラーダイアログUI
+    - UIテーマシステム（ThemeContext）
+    - UnorderedList、MultiSelect、OrderedListコンポーネント
+  - 実装場所: src/config-management.js, src/otel-setup.js, src/config-error-dialog.js, src/ui-theme.js, src/unordered-list.js, src/multi-select.js, src/ordered-list.js (新規作成)
