@@ -3,7 +3,7 @@
 ## 解析状況
 - 総行数: 2597行
 - ファイルサイズ: 7.3MB
-
+## phase 1: cli.jsの解析を行い、各機能の概要を把握する。
 ## 進捗管理
 - [x] 2588-2597行解析済み (src/cli-commands.js)
 - [x] 2578-2587行解析済み (src/streaming-update.js)
@@ -222,12 +222,18 @@
 - [x] 207-210行解析済み (src/date-time-utils.js, src/aws-service-exceptions.js, src/ec2-metadata-service.js, src/url-security-validator.js)
 - [x] 187-206行解析済み (src/aws-signature-v4.js拡張, src/aws-sdk-sigv4-signer.js)
 - [x] 167-186行解析済み (src/syntax-highlighter.js, src/language-definitions.js)
-- [ ] 147-166行解析中
-- [ ] 127-146行解析中
-- [ ] 107-126行解析中
-- [ ] 87-106行解析中
-- [ ] 67-86行解析中
-- [ ] 47-66行解析中
-- [ ] 27-46行解析中
+- [x] 147-166行解析済み (src/array-helpers.js, src/prototype-helpers.js, src/bridge-message-system.js)
+- [x] 127-146行解析済み (src/react-stack-trace.js, src/react-devtools-profiler.js, src/react-version-manager.js)
+- [x] 107-126行解析済み (src/semver-utils.js, src/react-element-analyzer.js, src/serialization-system.js, src/console-formatter.js)
+- [x] 87-106行解析済み (src/lru-cache.js, src/process-polyfill.js, src/pseudomap.js, src/stack-frame-parser.js, src/event-emitter.js)
+- [x] 67-86行解析済み (src/fiber-error-handler.js, src/fiber-components.js, src/react-devtools-selectors.js)
+- [x] 47-66行解析済み (src/mime-handler.js, src/form-data-processor.js, src/proxy-resolver.js, src/debug-system.js)
+- [x] 27-46行解析済み (src/url-pattern-matcher.js, src/express-integration.js, src/database-integrations.js, src/metrics-collector.js)
 - [ ] 7-26行解析中
 - [ ] 0-6行解析中
+
+
+## phase 2: srcフォルダ内に復元したファイルのみで、実際に動作するように修正を行う。
+ - [ ] 復元したファイルすべてを確認し、難読化した状態の変数がないか確認する
+ - [ ] 復元したファイルすべてを確認し、難読化した状態の処理がないか確認する
+ - [ ] 実際に動作するように修正を行う

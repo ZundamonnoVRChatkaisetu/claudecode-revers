@@ -1,9 +1,57 @@
-- [ ] 147-166行解析中
-- [ ] 127-146行解析中
-- [ ] 107-126行解析中
-- [ ] 87-106行解析中
-- [ ] 67-86行解析中
-- [ ] 47-66行解析中
-- [ ] 27-46行解析中
+## cli.js詳細解析進捗
+- [x] 147-166行解析済み(src/array-helpers.js, src/prototype-helpers.js, src/bridge-message-system.js)
+  - 配列操作・イテレータ処理のヘルパー関数群
+  - オブジェクトプロトタイプ設定・継承のヘルパー関数
+  - Bridgeクラス: メッセージキューイング、フラッシュ、シャットダウン機能
+  - React DevTools バージョン管理・プロファイリング制御
+  - オーバーライド機能（context, hooks, props, state）
+  - エラーハンドリング・警告処理システム
+  
+- [x] 127-146行解析済み(src/react-stack-trace.js, src/react-devtools-profiler.js, src/react-version-manager.js)
+  - Reactコンポーネントスタックトレース生成機能
+  - エラーハンドリング・デバッグ情報収集
+  - React DevToolsプロファイリングシステム(パフォーマンス計測)
+  - タイムライン・メトリクス収集機能
+  - Suspense、レンダリング、エフェクトの追跡
+  - React内部モジュールの範囲検出
+  - Reactバージョン毎の設定管理システム
+- [x] 107-126行解析済み(src/semver-utils.js, src/react-element-analyzer.js, src/serialization-system.js, src/console-formatter.js)
+  - セマンティックバージョニング(semver)システム
+  - React要素・コンポーネントの分析・表示機能
+  - 設定・環境変数管理機能
+  - データシリアライゼーション・デシリアライゼーション機能
+  - コンソールログ処理・フォーマット機能
+  - エラーハンドリング・スタックトレース解析
+  - DOM要素の境界検出・位置計算機能
+- [x] 87-106行解析済み(src/lru-cache.js, src/process-polyfill.js, src/pseudomap.js, src/stack-frame-parser.js, src/event-emitter.js)
+  - LRUキャッシュ実装(メモリ管理・期限切れ機能)
+  - Node.js processモジュールブラウザポリフィル
+  - Mapポリフィル実装(PseudoMap)
+  - スタックフレームパーサー・デバッグユーティリティ
+  - イベントエミッター実装・DevTools通信システム
+  - メモ化・キャッシュ最適化機能
+- [x] 67-86行解析済み(src/fiber-error-handler.js, src/fiber-components.js, src/react-devtools-selectors.js)
+  - React Fiber エラーハンドリングシステム（Lw, fF, bE, EP関数）
+  - Fiber ping処理・Promise状態管理（w1, $W, BJ関数）
+  - React コンポーネント更新・レンダリング処理（uk, mk, PI, dk関数）
+  - React コンテキスト・状態管理（r$, Mw, HP関数）
+  - React DevTools セレクター定義（uE, BL, mE, dE, Pw定数）
+  - エラー境界処理・componentDidCatch実装
+  - Suspense・遅延ローディング処理システム
+- [x] 47-66行解析済み(src/mime-handler.js, src/form-data-processor.js, src/proxy-resolver.js, src/debug-system.js)
+  - MIMEタイプ処理・文字セット判定システム（charset, contentType, extension, lookup関数）
+  - FormDataマルチパート処理・ファイルアップロード機能
+  - HTTP/HTTPSプロキシ解決・環境変数ベース設定
+  - デバッグシステム・ログ管理・カラー出力機能
+  - ファイルストリーム処理・長さ計算・境界線生成
+  - 同期/非同期処理調整・エラーハンドリング
+- [x] 27-46行解析済み(src/url-pattern-matcher.js, src/express-integration.js, src/database-integrations.js, src/metrics-collector.js)
+  - URLパターンマッチング・フィルタリング機能（stringMatchesSomePattern関数）
+  - Express.jsミドルウェア統合・ルーティング処理・トランザクション管理
+  - データベース統合機能（PostgreSQL、MySQL、MongoDB、Prisma、GraphQL）
+  - Apollo Server統合・GraphQLリゾルバートレーシング
+  - ブラウザメトリクス収集・パフォーマンス測定機能
+  - バックグラウンドタブ検出・可視性変更処理
+  - ユニークID生成・レポート機能
 - [ ] 7-26行解析中
 - [ ] 0-6行解析中
