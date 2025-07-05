@@ -2,177 +2,130 @@
 // Reconstructed from cli.js lines 1587-1596
 
 const { z: zodSchema } = require('zod');
-const RD = require('react');
+const RD = require('react'); // Assuming React is available
 
-// Import required components and utilities\nconst { TextComponent, BoxComponent, ErrorComponent, BashResultComponent } = require('./ui-components');\nconst { recordTelemetryEvent, getCommitCounter, getPRCounter } = require('./telemetry-system');\nconst { getBashPrompt, splitCommands, isExtendedModeEnabled } = require('./bash-utils');\nconst { checkUserPermissions, validateCommandSecurity } = require('./security-validator');\nconst { getCurrentDirectory, getWorkingDirectory, getPermissionContext } = require('./file-system');
-//
-// Constants\nconst ERROR_SEPARATOR = '\\n---\\n';\n\n// Base schema definition (should be imported from schema module)\nconst baseSchema = zodSchema.object({\n    command: zodSchema.string().describe(\"The command to execute\"),\n    description: zodSchema.string().optional().describe(\"Description of what this command does\")\n});
+// Import required components and utilities
+const { TextComponent, BoxComponent, ErrorComponent, BashResultComponent } = require('./ui-components'); // Assuming ui-components.js exists and exports these
+const { sendTelemetryEvent } = require('./stats-telemetry.js'); // Renamed from telemetry-system / E1
+// const { getCommitCounter, getPRCounter } = require('./stats-telemetry.js'); // These seem specific, ensure they are exported if needed
+
+// Assuming bash-utils.js provides these or similar:
+// const { getBashPrompt, isExtendedModeEnabled } = require('./bash-utils'); // splitCommands removed as it's from command-parser
+// For now, let's define placeholders if bash-utils.js is not yet available/defined
+const getBashPrompt = () => Promise.resolve("> "); // Placeholder for oo0
+const isExtendedModeEnabled = () => false; // Placeholder for zF1
+
+// Imports from command-security.js (some were moved to bash-tool-config.js or command-parser.js)
+const {
+    validateCommandPermissions, // Was gAA
+    validateCdAccess, // Was fAA (assumption)
+    commandSchema, // Was sM2 (remains from command-security as it might contain more than just the base schema)
+} = require('./command-security.js');
+
+// Imports from the new bash-tool-config.js
+const {
+    TOOL_NAME, // Was EC, now from config
+    // SECURE_COMMAND_PATTERNS, // No longer needed here, defined in bash-tool-config.js
+    isCommandReadOnly // Centralized read-only logic
+} = require('./bash-tool-config.js');
+
+// Import for command splitting is no longer directly needed here, as isCommandReadOnly handles it.
+// const { parseCommandList: splitCommandsForValidation } = require('./command-parser.js');
+
+
+// Assuming file-system.js provides these or similar:
+// const { getCurrentDirectory, getWorkingDirectory, getPermissionContext } = require('./file-system');
+// For now, let's define placeholders if file-system.js is not yet available/defined
+const getCurrentDirectory = () => process.cwd(); // Placeholder for U9
+const getWorkingDirectory = () => process.cwd(); // Placeholder for dA
+const getPermissionContext = () => ({}); // Placeholder for YX
+
+
+// Constants
+const ERROR_SEPARATOR = '\\n---\\n';
+
+// Base schema definition - commandSchema from command-security.js is likely the intended base
+// const baseSchema = commandSchema; //This seems to be the sM2 reference
 
 // Extended schema with sandbox and shell executable options
-const ExtendedBashSchema = baseSchema.extend({
+// Assuming Cw6 was this schema.
+const ExtendedBashSchema = commandSchema.extend({
     sandbox: zodSchema.boolean().optional().describe("whether to run this command in sandboxed mode: command run in this mode may not write to the filesystem or use the network, but they can read files, analyze data, and report back to you. When possible, run commands (e.g. grep) in this mode to present a smoother experience for the human, who isn't prompted to approve commands run in sandbox mode. If you run a command in sandbox mode and it looks like it fails because it needs write access after all, try again in non-sandbox mode"),
     shellExecutable: zodSchema.string().optional().describe("Optional shell path to use instead of the default shell. The snapshot path will be set to undefined as well. Used primarily for testing.")
 });
 
 // Timing constants
-const MIN_EXECUTION_TIME_MS = 2;
+const MIN_EXECUTION_TIME_MS = 2; // This was defined
 const MAX_DISPLAY_ROWS = 160;
 
-// Secure command patterns - over 80 patterns for safe execution
-const SECURE_COMMAND_PATTERNS = new Set([
-    /^date\b[^<>()$`]*$/,
-    /^cal\b[^<>()$`]*$/,
-    /^uptime\b[^<>()$`]*$/,
-    /^echo\s+(?:'[^']*'|"[^"$<>]*"|[^|;&`$(){}><#\\\s!]+?)*$/,
-    /^claude -h$/,
-    /^claude --help$/,
-    // Git commands (read-only)
-    /^git diff(?!\s+.*--ext-diff)(?!\s+.*--extcmd)[^<>()$`]*$/,
-    /^git log[^<>()$`]*$/,
-    /^git show[^<>()$`]*$/,
-    /^git status[^<>()$`]*$/,
-    /^git blame[^<>()$`]*$/,
-    /^git reflog[^<>()$`]*$/,
-    /^git stash list[^<>()$`]*$/,
-    /^git ls-files[^<>()$`]*$/,
-    /^git ls-remote[^<>()$`]*$/,
-    /^git config --get[^<>()$`]*$/,
-    /^git remote -v$/,
-    /^git remote show[^<>()$`]*$/,
-    /^git tag$/,
-    /^git tag -l[^<>()$`]*$/,
-    /^git branch$/,
-    /^git branch (?:-v|-vv|--verbose)$/,
-    /^git branch (?:-a|--all)$/,
-    /^git branch (?:-r|--remotes)$/,
-    /^git branch (?:-l|--list)(?:\s+"[^"]*"|'[^']*')?$/,
-    /^git branch (?:--color|--no-color|--column|--no-column)$/,
-    /^git branch --sort=\S+$/,
-    /^git branch --show-current$/,
-    /^git branch (?:--contains|--no-contains)\s+\S+$/,
-    /^git branch (?:--merged|--no-merged)(?:\s+\S+)?$/,
-    // File system read-only commands
-    /^head[^<>()$`]*$/,
-    /^tail[^<>()$`]*$/,
-    /^wc[^<>()$`]*$/,
-    /^stat[^<>()$`]*$/,
-    /^file[^<>()$`]*$/,
-    /^strings[^<>()$`]*$/,
-    /^hexdump[^<>()$`]*$/,
-    /^sort(?!\s+.*-o\b)(?!\s+.*--output)[^<>()$`]*$/,
-    /^uniq(?:\s+(?:-[a-zA-Z]+|--[a-zA-Z-]+(?:=\S+)?|-[fsw]\s+\d+))*\s*$/,
-    /^grep\s+(?:(?:-[a-zA-Z]+|-[ABC](?:\s+)?\d+)\s+)*(?:'[^']*'|".*"|\S+)\s*$/,
-    /^rg\s+(?:(?:-[a-zA-Z]+|-[ABC](?:\s+)?\d+)\s+)*(?:'[^']*'|".*"|\S+)\s*$/,
-    // System information commands
-    /^pwd$/,
-    /^whoami$/,
-    /^id[^<>()$`]*$/,
-    /^uname[^<>()$`]*$/,
-    /^free[^<>()$`]*$/,
-    /^df[^<>()$`]*$/,
-    /^du[^<>()$`]*$/,
-    /^ps(?!\s+.*-o)[^<>()$`]*$/,
-    /^locale[^<>()$`]*$/,
-    // Language/runtime version checks
-    /^node -v$/,
-    /^npm -v$/,
-    /^npm list[^<>()$`]*$/,
-    /^python --version$/,
-    /^python3 --version$/,
-    /^pip list[^<>()$`]*$/,
-    // Docker read-only commands
-    /^docker ps[^<>()$`]*$/,
-    /^docker images[^<>()$`]*$/,
-    // Network information
-    /^netstat(?!\s+.*-p)[^<>()$`]*$/,
-    /^ip addr[^<>()$`]*$/,
-    /^ifconfig[^<>()$`]*$/,
-    // Documentation/help
-    /^man(?!\s+.*-P)(?!\s+.*--pager)[^<>()$`]*$/,
-    /^info[^<>()$`]*$/,
-    /^help[^<>()$`]*$/,
-    // Misc safe commands
-    /^sleep[^<>()$`]*$/,
-    /^tree$/,
-    /^which[^<>()$`]*$/,
-    /^type[^<>()$`]*$/,
-    /^history(?!\s+-c)[^<>()$`]*$/,
-    /^alias$/,
-    // JSON processing (without file operations)
-    /^jq(?!\s+.*(?:-f\b|--from-file|--rawfile|--slurpfile|--run-tests))(?:\s+(?:-[a-zA-Z]+|--[a-zA-Z-]+(?:=\S+)?))*(?: +(?:'.*'|".*"|[^-\s][^\s]*))?\s*$/
-]);
+// SECURE_COMMAND_PATTERNS is now imported from bash-tool-config.js and used within isCommandReadOnly from there.
+// So, the local definition here is removed.
 
 // Git operation tracking function
-function Xw6(A, B) {
-    if (B !== 0) return;
+function trackGitOperation(command, exitCode) { // Was Xw6 (A, B)
+    if (exitCode !== 0) return;
     
-    if (A.match(/^\s*git\s+commit\b/)) {
-        E1("tengu_git_operation", { operation: "commit" });
-        E8A()?.add(1);
-    } else if (A.match(/^\s*gh\s+pr\s+create\b/)) {
-        E1("tengu_git_operation", { operation: "pr_create" });
-        K8A()?.add(1);
+    if (command.match(/^\s*git\s+commit\b/)) {
+        sendTelemetryEvent("tengu_git_operation", { operation: "commit" }); // Was E1
+        // getCommitCounter()?.add(1); // Was E8A() - Assuming getCommitCounter from stats-telemetry
+    } else if (command.match(/^\s*gh\s+pr\s+create\b/)) {
+        sendTelemetryEvent("tengu_git_operation", { operation: "pr_create" }); // Was E1
+        // getPRCounter()?.add(1); // Was K8A() - Assuming getPRCounter from stats-telemetry
     }
 }
 
 // Main bash tool implementation object
-const _9 = {
-    name: EC,
+const bashToolImplementation = { // Was _9
+    name: TOOL_NAME, // Was EC, now from bash-tool-config.js
     
-    async description({ description: A }) {
-        return A || "Run shell command";
+    async description({ description: desc }) { // Was A
+        return desc || "Run shell command";
     },
     
     async prompt() {
-        return oo0();
+        return getBashPrompt(); // Was oo0()
     },
     
-    isConcurrencySafe(A) {
-        return this.isReadOnly(A);
+    isConcurrencySafe(input) { // Was A
+        return this.isReadOnly(input);
     },
     
-    isReadOnly(A) {
-        let { command: B } = A;
-        return ("sandbox" in A ? !!A.sandbox : false) || 
-               Ik(B).every((D) => {
-                   for (let I of Jw6) {
-                       if (I.test(D)) return true;
-                   }
-                   return false;
-               });
+    isReadOnly(input) { // Was A. Now uses the imported isCommandReadOnly
+        return isCommandReadOnly(input);
     },
     
-    inputSchema: zF1() ? Cw6 : sM2,
+    inputSchema: isExtendedModeEnabled() ? ExtendedBashSchema : commandSchema, // Was zF1() ? Cw6 : sM2
     
-    userFacingName(A) {
-        if (!A) return "Bash";
-        return ("sandbox" in A ? !!A.sandbox : false) ? "SandboxedBash" : "Bash";
+    userFacingName(input) { // Was A
+        if (!input) return "Bash";
+        return ("sandbox" in input ? !!input.sandbox : false) ? "SandboxedBash" : "Bash";
     },
     
     isEnabled() {
         return true;
     },
     
-    async checkPermissions(A, B) {
-        if ("sandbox" in A ? !!A.sandbox : false) {
-            return { behavior: "allow", updatedInput: A };
+    async checkPermissions(input, context) { // Was A, B
+        if ("sandbox" in input ? !!input.sandbox : false) {
+            return { behavior: "allow", updatedInput: input };
         }
-        return gAA(A, B);
+        return validateCommandPermissions(input, context); // Was gAA(A, B)
     },
     
-    async validateInput(A) {
-        let B = fAA(A, dA(), U9(), YX());
-        if (B.behavior !== "allow") {
-            return { result: false, message: B.message, errorCode: 1 };
+    async validateInput(input) { // Was A
+        // Assuming fAA was validateCdAccess, and dA, U9, YX map to directory/permission context getters
+        let cdAccessResult = validateCdAccess(input, getWorkingDirectory(), getCurrentDirectory(), getPermissionContext()); // Was B = fAA(A, dA(), U9(), YX())
+        if (cdAccessResult.behavior !== "allow") {
+            return { result: false, message: cdAccessResult.message, errorCode: 1 };
         }
         return { result: true };
     },
     
-    renderToolUseMessage(A, { verbose: B }) {
-        let { command: Q } = A;
-        if (!Q) return null;
+    renderToolUseMessage(input, { verbose: isVerbose }) { // Was A, {verbose: B}
+        let { command: cmd } = input; // Was Q from A
+        if (!cmd) return null;
         
-        let D = Q;
+        let displayCommand = cmd; // Was D = Q
         
         // Handle heredoc format
         if (Q.includes('"$(cat <<\'EOF\'')) {

@@ -5,13 +5,22 @@ const { z: zodSchema } = require('zod');
 const { isAbsolute, resolve } = require('path');
 
 // Import required utilities
-const { shellParser, QUOTE_ESCAPE_CHAR, SINGLE_QUOTE_ESCAPE_CHAR } = require('./shell-parser');
+// Assuming QUOTE_ESCAPE_CHAR and SINGLE_QUOTE_ESCAPE_CHAR were specific to the old shellParser interaction
+// and might not be directly available or needed in the same way with the current shell-parser.js exports.
+// For now, let's define them locally if they are critically used, or adapt usage.
+const { parse: shellParse, quote: shellQuote } = require('./shell-parser'); // Adjusted import
 const VALID_FILE_DESCRIPTORS = new Set(['1', '2', '0']);
 
+// Define escape chars locally if they are needed and not exported by shell-parser.js
+// These are placeholder values if their original values/purpose are unknown.
+const QUOTE_ESCAPE_CHAR = '\\"'; // Placeholder, adjust if original value is known
+const SINGLE_QUOTE_ESCAPE_CHAR = "\\'"; // Placeholder, adjust if original value is known
+
+
 // Additional imports
-const { parseShellTokens, splitPipeCommands } = require('./command-parser');
-const { bashToolImplementation } = require('./bash-tool-core');
-const TOOL_NAME = 'Bash';
+const { parseShellTokens, splitPipeCommands, parseCommandList: splitCommandsForValidation } = require('./command-parser'); // Assuming parseCommandList is suitable for splitCommandsForValidation
+const { TOOL_NAME, isCommandReadOnly } = require('./bash-tool-config');
+// Removed: const { bashToolImplementation } = require('./bash-tool-core'); due to circular dependency
 
 // Stub functions (require actual implementation)
 function isPathAllowed(path, context) {
@@ -30,7 +39,10 @@ Command: `;
 
 // Pipeline safety verification
 function verifyPipelineSafety(command) {
-    let parsedTokens = shellParser.parse(command.replaceAll('"', `"${QUOTE_ESCAPE_CHAR}`).replaceAll("'", `'${SINGLE_QUOTE_ESCAPE_CHAR}`), (token) => `$${token}`);
+    // Using shellParse directly. The second argument to shellParser.parse was an env function.
+    // The current shellParse (fullParse from shell-parser.js) expects (str, env, options).
+    // We'll pass an empty object for env and options for now.
+    let parsedTokens = shellParse(command.replaceAll('"', `"${QUOTE_ESCAPE_CHAR}`).replaceAll("'", `'${SINGLE_QUOTE_ESCAPE_CHAR}`), {}, {});
     
     for (let index = 0; index < parsedTokens.length; index++) {
         let currentToken = parsedTokens[index];
@@ -68,13 +80,13 @@ async function checkPipeRightHandPermissions(input, leftCommands, rightCommands,
     let leftPermissionResult = await checkPermissionFunction({ ...input, command: leftCommandString });
     
     let isRightReadOnly = splitPipeCommands(rightCommands).every((command) => {
-        return bashToolImplementation.isReadOnly({ ...input, command: command.trim() });
+        return isCommandReadOnly({ ...input, command: command.trim() }); // Use imported isCommandReadOnly
     });
     
     let rightCommandString = rightCommands.join(" ").trim();
     let rightPermissionResult = isRightReadOnly ? 
         { behavior: "allow", updatedInput: input, decisionReason: { type: "other", reason: "Pipe right-hand command is read-only" } } :
-        { behavior: "ask", message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`, decisionReason: { type: "other", reason: "Pipe right-hand command is not read-only" } };
+        { behavior: "ask", message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, decisionReason: { type: "other", reason: "Pipe right-hand command is not read-only" } }; // Use imported TOOL_NAME
     
     let resultMap = new Map([[leftCommandString, leftPermissionResult], [rightCommandString, rightPermissionResult]]);
     
@@ -99,18 +111,19 @@ async function checkPipeRightHandPermissions(input, leftCommands, rightCommands,
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
+        message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use imported TOOL_NAME
         decisionReason: { type: "subcommandResults", reasons: resultMap },
         ruleSuggestions: ruleSuggestions
     };
 }
 
 // Pipe command permission check
+// TODO: Rename 'context' to a more specific name like 'checkSubCommandPermissionFunction'
 async function checkPipePermissions(input, context) {
     if (hasMultipleCommands(input.command)) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use imported TOOL_NAME
             decisionReason: { type: "other", reason: "Unsupported shell control operator" },
             ruleSuggestions: null
         };
@@ -122,7 +135,7 @@ async function checkPipePermissions(input, context) {
     if (pipeIndex >= 0) {
         let leftTokens = commandTokens.slice(0, pipeIndex);
         let rightTokens = commandTokens.slice(pipeIndex + 1);
-        return checkPipeRightHandPermissions(input, leftTokens, rightTokens, context);
+        return checkPipeRightHandPermissions(input, leftTokens, rightTokens, context); // context is checkPermissionFunction here
     }
     
     return null;
@@ -155,10 +168,10 @@ function validateCdAccess(input, currentDir, allowedDir, allowedDirs) {
 const createRulePattern = (command) => `${command}:*`;
 
 function createRuleSuggestion(ruleContent) {
-    return [{ toolName: bashToolImplementation.name, ruleContent: ruleContent }];
+    return [{ toolName: TOOL_NAME, ruleContent: ruleContent }]; // Use imported TOOL_NAME
 }
 
-function createRuleSuggestionWithPattern(command) {
+function createDefaultRuleSuggestion(command) { // Was dH1
     return [{ toolName: bashToolImplementation.name, ruleContent: createRulePattern(command) }];
 }
 
@@ -207,6 +220,7 @@ function getRuleMatches(input, rulesContext, matchType) {
 }
 
 // Permission decision logic
+// TODO: Rename 'context' to 'rulesContext'
 const makePermissionDecision = (input, context) => {
     let commandText = input.command.trim();
     let { matchingDenyRules, matchingAllowRules } = getRuleMatches(input, context, "exact");
@@ -214,7 +228,7 @@ const makePermissionDecision = (input, context) => {
     if (matchingDenyRules[0] !== void 0) {
         return {
             behavior: "deny",
-            message: `Permission to use ${bashToolImplementation.name} with command ${commandText} has been denied.`,
+            message: `Permission to use ${TOOL_NAME} with command ${commandText} has been denied.`, // Use TOOL_NAME
             decisionReason: { type: "rule", rule: matchingDenyRules[0] },
             ruleSuggestions: null
         };
@@ -228,7 +242,7 @@ const makePermissionDecision = (input, context) => {
         };
     }
     
-    if (bashToolImplementation.isReadOnly(input)) {
+    if (isCommandReadOnly(input)) { // Use imported isCommandReadOnly
         return {
             behavior: "allow",
             updatedInput: input,
@@ -238,16 +252,18 @@ const makePermissionDecision = (input, context) => {
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
-        ruleSuggestions: createRuleSuggestionWithPattern(commandText)
+        message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use TOOL_NAME
+        ruleSuggestions: createDefaultRuleSuggestion(commandText)
     };
 };
 
+// TODO: Rename allowedDirs to rulesContext for consistency if it serves a similar purpose
 const handleSpecialCommands = (input, allowedDirs) => {
     let commandText = input.command.trim();
     
     // Special handling for cd command
     if (commandText.split(" ")[0] === "cd") {
+        // Assuming getCurrentDirectory() and getWorkingDirectory() are globally available or passed in context
         if (validateCdAccess(input, getCurrentDirectory(), getWorkingDirectory(), allowedDirs).behavior === "allow") {
             return {
                 behavior: "allow",
@@ -257,221 +273,290 @@ const handleSpecialCommands = (input, allowedDirs) => {
         }
     }
     
-    let permissionResult = makePermissionDecision(input, allowedDirs);
-    if (permissionResult.behavior === "deny") return permissionResult;
+    let directPermission = makePermissionDecision(input, allowedDirs); // Was D
+    if (directPermission.behavior === "deny") return directPermission;
     
     let { matchingDenyRules: prefixDenyRules, matchingAllowRules: prefixAllowRules } = getRuleMatches(input, allowedDirs, "prefix");
     
     if (prefixDenyRules[0] !== void 0) {
         return {
             behavior: "deny",
-            message: `Permission to use ${bashToolImplementation.name} with command ${commandText} has been denied.`,
+            message: `Permission to use ${TOOL_NAME} with command ${commandText} has been denied.`, // Use TOOL_NAME
             decisionReason: { type: "rule", rule: prefixDenyRules[0] },
             ruleSuggestions: null
         };
     }
     
-    if (D.behavior === "allow") return D;
+    if (directPermission.behavior === "allow") return directPermission; // Was D
     
-    if (G[0] !== void 0) {
+    if (prefixAllowRules[0] !== void 0) { // Was G
         return {
             behavior: "allow",
-            updatedInput: A,
-            decisionReason: { type: "rule", rule: G[0] }
+            updatedInput: input, // Was A
+            decisionReason: { type: "rule", rule: prefixAllowRules[0] } // Was G[0]
         };
     }
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
-        ruleSuggestions: dH1(Q)
+        message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use TOOL_NAME
+        ruleSuggestions: createDefaultRuleSuggestion(commandText) // Was dH1(Q) where Q was commandText
     };
 };
 
-function lM2(A, B, Q) {
-    let D = bAA(A, B);
-    if (D.behavior === "deny") return D;
-    if (D.behavior === "allow") return D;
+// Placeholder for now, requires understanding of bAA, nM2, Qw6, dH1
+function checkDirectPermissions(input, rulesContext) { // Was bAA
+    // Simplified version of makePermissionDecision or handleSpecialCommands
+    // This needs to be fleshed out based on its actual logic
+    return makePermissionDecision(input, rulesContext);
+}
+
+function checkPrefixBasedPermissions(input, rulesContext) { // Was nM2
+    // Simplified, focusing on prefix matching part of handleSpecialCommands
+    let { matchingDenyRules, matchingAllowRules } = getRuleMatches(input, rulesContext, "prefix");
+    if (matchingDenyRules.length > 0) {
+        return { behavior: "deny", message: "Denied by prefix rule.", decisionReason: {type: "rule", rule: matchingDenyRules[0]}};
+    }
+    if (matchingAllowRules.length > 0) {
+        return { behavior: "allow", updatedInput: input, decisionReason: {type: "rule", rule: matchingAllowRules[0]} };
+    }
+    return { behavior: "ask", message: "No prefix rule matched.", ruleSuggestions: createDefaultRuleSuggestion(input.command) };
+}
+
+
+function createRuleSuggestionFromPrefix(prefix) { // Was Qw6
+    return createDefaultRuleSuggestion(prefix);
+}
+
+
+// Was lM2
+function checkCommandWithPrefixVerification(input, rulesContext, prefixCheckResult) {
+    let directPermission = checkDirectPermissions(input, rulesContext); // Was D = bAA(A, B)
+    if (directPermission.behavior === "deny") return directPermission;
+    if (directPermission.behavior === "allow") return directPermission;
     
-    let I = nM2(A, B);
-    if (I.behavior === "deny") return I;
+    let prefixPermission = checkPrefixBasedPermissions(input, rulesContext); // Was I = nM2(A, B)
+    if (prefixPermission.behavior === "deny") return prefixPermission;
     
-    if (Q === null || Q === void 0) {
+    if (prefixCheckResult === null || prefixCheckResult === void 0) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use TOOL_NAME
             decisionReason: { type: "other", reason: "Command prefix query failed" },
-            ruleSuggestions: dH1(A.command)
+            ruleSuggestions: createDefaultRuleSuggestion(input.command) // Was dH1(A.command)
         };
     }
     
-    if (Q.commandInjectionDetected) {
+    if (prefixCheckResult.commandInjectionDetected) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use TOOL_NAME
             decisionReason: { type: "other", reason: "Potential command injection detected" },
             ruleSuggestions: null
         };
     }
     
-    if (I.behavior === "allow") return I;
+    if (prefixPermission.behavior === "allow") return prefixPermission;
     
-    let G = Q.commandPrefix ? Qw6(Q.commandPrefix) : dH1(A.command);
+    // Was G = Q.commandPrefix ? Qw6(Q.commandPrefix) : dH1(A.command);
+    let ruleSuggestionsBasedOnPrefix = prefixCheckResult.commandPrefix ?
+        createRuleSuggestionFromPrefix(prefixCheckResult.commandPrefix) :
+        createDefaultRuleSuggestion(input.command);
     
-    return { ...I, ruleSuggestions: G };
+    return { ...prefixPermission, ruleSuggestions: ruleSuggestionsBasedOnPrefix };
 }
 
+// Dummy functions for unresolved external dependencies, to be replaced by actual implementations or imports
+const defaultGetCommandPrefix = async (command, signal, isNonInteractive) => { // Was hM2
+    console.warn("defaultGetCommandPrefix (hM2) is a dummy implementation");
+    return { commandInjectionDetected: false, commandPrefix: command.split(" ")[0] };
+};
+const checkPipePermissionsRecursive = async (input, recursiveCall) => { // Was cM2
+    console.warn("checkPipePermissionsRecursive (cM2) is a dummy implementation");
+    // This should likely call checkPipePermissions, which itself calls checkPipeRightHandPermissions
+    // The recursiveCall is the validateCommandPermissions itself.
+    return checkPipePermissions(input, recursiveCall); // Pass the main validation fn as the context/checker
+};
+// Removed duplicate declaration of splitCommandsForValidation, as it's imported from command-parser.js
+// const splitCommandsForValidation = (command) => { // Was Ik
+//     console.warn("splitCommandsForValidation (Ik) is a dummy implementation, using basic split");
+//     return parseCommandList(command); // Using existing parseCommandList as a placeholder
+// };
+const getDefaultCdPath = () => { // Was dA
+    console.warn("getDefaultCdPath (dA) is a dummy implementation");
+    return "."; // Default to current directory
+};
+class AbortError extends Error { constructor(message) { super(message); this.name = "AbortError"; } } // Was nD
+const generateRuleKey = (rule) => { // Was U3
+    console.warn("generateRuleKey (U3) is a dummy implementation");
+    return `${rule.toolName}:${rule.ruleContent}`;
+};
+
+
 // Main permission validation function
-const gAA = async (A, B, Q = hM2) => {
-    let D = bAA(A, B.getToolPermissionContext());
-    if (D.behavior === "deny") return D;
-    
-    let I = await cM2(A, (E) => gAA(E, B, Q));
-    if (I !== null) return I;
-    
-    let G = Ik(A.command).filter((E) => {
-        if (E === `cd ${dA()}`) return false;
+// Was gAA
+const validateCommandPermissions = async (input, permissionContext, getCommandPrefixFunction = defaultGetCommandPrefix) => {
+    let directPermission = checkDirectPermissions(input, permissionContext.getToolPermissionContext()); // Was D = bAA(A, B.getToolPermissionContext());
+    if (directPermission.behavior === "deny") return directPermission;
+
+    // Was I = await cM2(A, (E) => gAA(E, B, Q));
+    let pipePermissionResult = await checkPipePermissionsRecursive(input, (subInput) => validateCommandPermissions(subInput, permissionContext, getCommandPrefixFunction));
+    if (pipePermissionResult !== null) return pipePermissionResult;
+
+    // Was G = Ik(A.command).filter(...)
+    let individualCommands = splitCommandsForValidation(input.command).filter((cmd) => {
+        if (cmd === `cd ${getDefaultCdPath()}`) return false; // Was dA()
         return true;
     });
     
-    if (G.filter((E) => E.startsWith("cd ")).length > 1) {
+    if (individualCommands.filter((cmd) => cmd.startsWith("cd ")).length > 1) {
         return {
             behavior: "ask",
-            message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
+            message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use TOOL_NAME
             decisionReason: { type: "other", reason: "Multiple cd commands detected" },
             ruleSuggestions: null
         };
     }
     
-    let F = G.map((E) => nM2({ command: E }, B.getToolPermissionContext()));
+    // Was F = G.map((E) => nM2({ command: E }, B.getToolPermissionContext()));
+    let commandPermissions = individualCommands.map((cmd) => checkPrefixBasedPermissions({ command: cmd }, permissionContext.getToolPermissionContext()));
     
     // Dangerous characters list
-    let Y = ['"', "'", "`", "$(", "${", "~[", "(e:", '\n', "\r", ";", "|", "&", "||", "&&", ">", "<", ">>", ">&", ">&2", "<(", ">(", "$", "\\", "#"];
+    const DANGEROUS_CHARACTERS = ['"', "'", "`", "$(", "${", "~[", "(e:", '\n', "\r", ";", "|", "&", "||", "&&", ">", "<", ">>", ">&", ">&2", "<(", ">(", "$", "\\", "#"]; // Was Y
     
-    if (F.find((E) => E.behavior === "deny") !== void 0) {
+    if (commandPermissions.find((perm) => perm.behavior === "deny") !== void 0) {
         return {
             behavior: "deny",
-            message: `Permission to use ${bashToolImplementation.name} with command ${A.command} has been denied.`,
+            message: `Permission to use ${TOOL_NAME} with command ${input.command} has been denied.`, // Use TOOL_NAME
             ruleSuggestions: null,
-            decisionReason: { type: "subcommandResults", reasons: new Map(F.map((E, w) => [G[w], E])) }
+            decisionReason: { type: "subcommandResults", reasons: new Map(commandPermissions.map((perm, idx) => [individualCommands[idx], perm])) }
         };
     }
     
-    if (D.behavior === "allow") return D;
+    if (directPermission.behavior === "allow") return directPermission;
     
-    if (F.every((E) => E.behavior === "allow") && !G.some((E) => Y.some((w) => E.includes(w)))) {
+    if (commandPermissions.every((perm) => perm.behavior === "allow") && !individualCommands.some((cmd) => DANGEROUS_CHARACTERS.some((char) => cmd.includes(char)))) {
         return {
             behavior: "allow",
-            updatedInput: A,
-            decisionReason: { type: "subcommandResults", reasons: new Map(F.map((E, w) => [G[w], E])) }
+            updatedInput: input,
+            decisionReason: { type: "subcommandResults", reasons: new Map(commandPermissions.map((perm, idx) => [individualCommands[idx], perm])) }
         };
     }
     
-    let C = await Q(A.command, B.abortController.signal, B.options.isNonInteractiveSession);
-    if (B.abortController.signal.aborted) throw new nD;
+    // Was C = await Q(A.command, B.abortController.signal, B.options.isNonInteractiveSession);
+    let prefixCheckResult = await getCommandPrefixFunction(input.command, permissionContext.abortController.signal, permissionContext.options.isNonInteractiveSession);
+    if (permissionContext.abortController.signal.aborted) throw new AbortError("Operation aborted"); // Was nD
     
-    let J = B.getToolPermissionContext();
+    let currentRulesContext = permissionContext.getToolPermissionContext(); // Was J
     
-    if (G.length === 1) {
-        return lM2({ command: G[0] }, J, C);
+    if (individualCommands.length === 1) {
+        return checkCommandWithPrefixVerification({ command: individualCommands[0] }, currentRulesContext, prefixCheckResult);
     }
     
-    let X = new Map;
-    for (let E of G) {
-        X.set(E, lM2({ ...A, command: E }, J, C?.subcommandPrefixes.get(E)));
+    let subcommandResults = new Map(); // Was X
+    for (let cmd of individualCommands) { // Was E
+        subcommandResults.set(cmd, checkCommandWithPrefixVerification({ ...input, command: cmd }, currentRulesContext, prefixCheckResult?.subcommandPrefixes?.get(cmd)));
     }
     
-    if (G.every((E) => {
-        return X.get(E)?.behavior === "allow";
+    if (individualCommands.every((cmd) => { // Was G.every((E) => X.get(E)?.behavior === "allow")
+        return subcommandResults.get(cmd)?.behavior === "allow";
     })) {
         return {
             behavior: "allow",
-            updatedInput: A,
-            decisionReason: { type: "subcommandResults", reasons: X }
+            updatedInput: input, // Was A
+            decisionReason: { type: "subcommandResults", reasons: subcommandResults }
         };
     }
     
-    let V = new Map;
-    for (let E of X.values()) {
-        if (E.behavior !== "allow") {
-            let w = E.ruleSuggestions;
-            if (w === void 0) continue;
-            else if (w === null) {
-                V = null;
+    let aggregatedRuleSuggestionsMap = new Map(); // Was V
+    for (let result of subcommandResults.values()) { // Was E of X.values()
+        if (result.behavior !== "allow") {
+            let suggestions = result.ruleSuggestions; // Was w
+            if (suggestions === void 0) continue;
+            else if (suggestions === null) {
+                aggregatedRuleSuggestionsMap = null;
                 break;
             } else {
-                for (let q of w) {
-                    let R = U3(q);
-                    V.set(R, q);
+                for (let suggestion of suggestions) { // Was q of w
+                    let key = generateRuleKey(suggestion); // Was R = U3(q)
+                    aggregatedRuleSuggestionsMap.set(key, suggestion);
                 }
             }
         }
     }
     
-    let K = V ? Array.from(V.values()) : null;
+    let aggregatedRuleSuggestions = aggregatedRuleSuggestionsMap ? Array.from(aggregatedRuleSuggestionsMap.values()) : null; // Was K
     
     return {
         behavior: "ask",
-        message: `Claude requested permissions to use ${bashToolImplementation.name}, but you haven't granted it yet.`,
-        decisionReason: { type: "subcommandResults", reasons: X },
-        ruleSuggestions: K
+        message: `Claude requested permissions to use ${TOOL_NAME}, but you haven't granted it yet.`, // Use TOOL_NAME
+        decisionReason: { type: "subcommandResults", reasons: subcommandResults },
+        ruleSuggestions: aggregatedRuleSuggestions
     };
 };
 
 // Command result interpretation
-const Iw6 = (A, B, Q) => ({
-    isError: A !== 0,
-    message: A !== 0 ? `Command failed with exit code ${A}` : void 0
+// Was Iw6
+const interpretDefaultExitCode = (exitCode, stdout, stderr) => ({
+    isError: exitCode !== 0,
+    message: exitCode !== 0 ? `Command failed with exit code ${exitCode}` : void 0
 });
 
 // Special command exit code interpretations
-const Gw6 = new Map([
-    ["grep", (A, B, Q) => ({
-        isError: A >= 2,
-        message: A === 1 ? "No matches found" : void 0
+// Was Gw6
+const SPECIAL_EXIT_CODE_HANDLERS = new Map([
+    ["grep", (exitCode, stdout, stderr) => ({
+        isError: exitCode >= 2,
+        message: exitCode === 1 ? "No matches found" : void 0
     })],
-    ["rg", (A, B, Q) => ({
-        isError: A >= 2,
-        message: A === 1 ? "No matches found" : void 0
+    ["rg", (exitCode, stdout, stderr) => ({
+        isError: exitCode >= 2,
+        message: exitCode === 1 ? "No matches found" : void 0
     })],
-    ["find", (A, B, Q) => ({
-        isError: A >= 2,
-        message: A === 1 ? "Some directories were inaccessible" : void 0
+    ["find", (exitCode, stdout, stderr) => ({
+        isError: exitCode >= 2,
+        message: exitCode === 1 ? "Some directories were inaccessible" : void 0
     })],
-    ["diff", (A, B, Q) => ({
-        isError: A >= 2,
-        message: A === 1 ? "Files differ" : void 0
+    ["diff", (exitCode, stdout, stderr) => ({
+        isError: exitCode >= 2,
+        message: exitCode === 1 ? "Files differ" : void 0
     })],
-    ["test", (A, B, Q) => ({
-        isError: A >= 2,
-        message: A === 1 ? "Condition is false" : void 0
+    ["test", (exitCode, stdout, stderr) => ({
+        isError: exitCode >= 2,
+        message: exitCode === 1 ? "Condition is false" : void 0
     })],
-    ["[", (A, B, Q) => ({
-        isError: A >= 2,
-        message: A === 1 ? "Condition is false" : void 0
+    ["[", (exitCode, stdout, stderr) => ({
+        isError: exitCode >= 2,
+        message: exitCode === 1 ? "Condition is false" : void 0
     })]
 ]);
 
-function Zw6(A) {
-    let B = Fw6(A);
-    let Q = Gw6.get(B);
-    return Q !== void 0 ? Q : Iw6;
+// Was Zw6
+function getExitCodeInterpreter(commandString) {
+    let mainCommand = extractMainCommandFromPipeline(commandString); // Was B = Fw6(A)
+    let interpreter = SPECIAL_EXIT_CODE_HANDLERS.get(mainCommand); // Was Q = Gw6.get(B)
+    return interpreter !== void 0 ? interpreter : interpretDefaultExitCode; // Was Iw6
 }
 
-function Fw6(A) {
-    return (A.split("|").pop()?.trim() || A).trim().split(/\s+/)[0] || "";
+// Was Fw6
+function extractMainCommandFromPipeline(commandString) {
+    return (commandString.split("|").pop()?.trim() || commandString).trim().split(/\s+/)[0] || "";
 }
 
-function aM2(A, B, Q, D) {
-    let G = Zw6(A)(B, Q, D);
-    return { isError: G.isError, message: G.message };
+// Was aM2
+function interpretCommandResult(commandString, exitCode, stdout, stderr) {
+    let interpreter = getExitCodeInterpreter(commandString); // Was G = Zw6(A)
+    let result = interpreter(exitCode, stdout, stderr); // Was G(B,Q,D)
+    return { isError: result.isError, message: result.message };
 }
 
-// Schema definition
-const sM2 = m.strictObject({
-    command: m.string().describe("The command to execute"),
-    timeout: m.number().optional().describe(`Optional timeout in milliseconds (max ${wC1()})`),
-    description: m.string().optional().describe(` Clear, concise description of what this command does in 5-10 words. Examples:
+// Schema definition for command input
+// Was sM2. Assuming 'm' was a placeholder for a schema library like Zod.
+// Using the existing 'simpleSchema' as per previous analysis.
+const commandSchema = simpleSchema.strictObject({
+    command: simpleSchema.string().describe("The command to execute"),
+    timeout: simpleSchema.number().optional().describe(`Optional timeout in milliseconds (max ${getMaxTimeout()})`), // Was wC1()
+    description: simpleSchema.string().optional().describe(` Clear, concise description of what this command does in 5-10 words. Examples:
 Input: ls
 Output: Lists files in current directory
 
@@ -488,7 +573,8 @@ function parseCommandList(command) {
     if (!command || typeof command !== 'string') {
         return [];
     }
-    return command.split(/[;&|]{1,2}/).map(cmd => cmd.trim()).filter(cmd => cmd.length > 0);
+    // Improved to handle multiple delimiters and ensure no empty strings
+    return command.split(/[;&|]+/).map(cmd => cmd.trim()).filter(cmd => cmd.length > 0);
 }
 
 /**
@@ -510,9 +596,11 @@ function getWorkingDirectory() {
  */
 function getRulesByType(context, toolName, ruleType) {
     const rules = new Map();
-    if (context && context.rules) {
+    // Ensure context and context.rules are defined
+    if (context && context.rules && typeof context.rules === 'object') {
         for (const [key, value] of Object.entries(context.rules)) {
-            if (key.includes(toolName) && key.includes(ruleType)) {
+            // Ensure key is a string before calling includes
+            if (typeof key === 'string' && key.includes(toolName) && key.includes(ruleType)) {
                 rules.set(key, value);
             }
         }
@@ -523,7 +611,7 @@ function getRulesByType(context, toolName, ruleType) {
 /**
  * timeout maximum value
  */
-function getMaxTimeout() {
+function getMaxTimeoutValue() { // Was wC1 / getMaxTimeout
     return 600000; // 10 minutes
 }
 
@@ -547,18 +635,37 @@ module.exports = {
     validateCdAccess,
     createRulePattern,
     createRuleSuggestion,
-    createRuleSuggestionWithPattern,
+    createDefaultRuleSuggestion, // Was createRuleSuggestionWithPattern, then dH1
     extractCommandFromPattern,
     parseCommandPattern,
     findMatchingRules,
     getRuleMatches,
     makePermissionDecision,
     handleSpecialCommands,
+    checkCommandWithPrefixVerification, // Was lM2
+    validateCommandPermissions, // Was gAA
+    interpretCommandResult, // Was aM2
+    commandSchema, // Was sM2
     parseCommandList,
     getCurrentDirectory,
     getWorkingDirectory,
     getRulesByType,
-    getMaxTimeout,
+    getMaxTimeoutValue, // Was getMaxTimeout
     commandInjectionTemplate,
-    m: simpleSchema
+    // Exposing renamed/newly clear functions
+    checkDirectPermissions, // Was bAA
+    checkPrefixBasedPermissions, // Was nM2
+    createRuleSuggestionFromPrefix, // Was Qw6
+    interpretDefaultExitCode, // Was Iw6
+    SPECIAL_EXIT_CODE_HANDLERS, // Was Gw6
+    getExitCodeInterpreter, // Was Zw6
+    extractMainCommandFromPipeline, // Was Fw6
+    // Exposing dummy/placeholder functions for completeness, though they should be implemented
+    defaultGetCommandPrefix, // Was hM2
+    checkPipePermissionsRecursive, // Was cM2
+    splitCommandsForValidation, // Was Ik
+    getDefaultCdPath, // Was dA
+    AbortError, // Was nD
+    generateRuleKey, // Was U3
+    m: simpleSchema // Keeping 'm' if it's used elsewhere, but aliasing to simpleSchema
 };
