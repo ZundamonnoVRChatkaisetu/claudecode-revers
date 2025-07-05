@@ -229,8 +229,8 @@
 - [x] 67-86行解析済み (src/fiber-error-handler.js, src/fiber-components.js, src/react-devtools-selectors.js)
 - [x] 47-66行解析済み (src/mime-handler.js, src/form-data-processor.js, src/proxy-resolver.js, src/debug-system.js)
 - [x] 27-46行解析済み (src/url-pattern-matcher.js, src/express-integration.js, src/database-integrations.js, src/metrics-collector.js)
-- [ ] 7-26行解析中
-- [ ] 0-6行解析中
+- [x] 7-26行解析済み (src/module-import-handler.js, src/shell-parser.js, src/type-utils.js, src/dom-handlers.js)
+- [x] 0-6行解析済み (src/cli-main.js)
 
 
 ## phase 2: srcフォルダ内に復元したファイルのみで、実際に動作するように修正を行う。

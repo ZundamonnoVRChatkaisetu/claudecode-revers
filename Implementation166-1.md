@@ -53,5 +53,16 @@
   - ブラウザメトリクス収集・パフォーマンス測定機能
   - バックグラウンドタブ検出・可視性変更処理
   - ユニークID生成・レポート機能
-- [ ] 7-26行解析中
-- [ ] 0-6行解析中
+- [x] 7-26行解析済み(src/module-import-handler.js, src/shell-parser.js, src/type-utils.js, src/dom-handlers.js)
+  - ES6モジュールインポート・CommonJS互換性システム（createRequire）
+  - シェルコマンド引用符処理・エスケープ機能（quote, parse関数）
+  - 型判定ユーティリティ・エラー処理・文字列操作（isError, isString, isRegExp等）
+  - DOM操作・イベントハンドリング・エラーキャッチ機能
+  - スタックトレース解析・ファイルパス処理
+  - SDK情報・モジュール管理・ブラウザ検出機能
+  - インストルメンテーション・ハンドラー管理
+- [x] 0-6行解析済み(src/cli-main.js)
+  - Shebang行: #!/usr/bin/env node
+  - 著作権表示: Anthropic PBC Commercial Terms of Service
+  - バージョン情報: 1.0.43
+  - CLIエントリポイント・実行環境設定
