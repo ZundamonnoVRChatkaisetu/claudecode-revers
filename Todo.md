@@ -256,12 +256,12 @@
     - [x] constants.js作成
 
 ### 2.2 その他重要ファイルの難読化処理確認
- - [ ] 中程度の難読化ファイル確認・修正
-    - [ ] date-utils.js (23個の難読化変数)
-    - [ ] notification-system.js (多数の難読化変数)
-    - [ ] crypto-utils.js (重要なセキュリティ機能)
-    - [ ] markdown-utilities.js (少数だが重要)
-    
+ - [x] 中程度の難読化ファイル確認・修正
+    - [x] date-utils.js (23個の難読化変数)
+    - [x] notification-system.js (多数の難読化変数)
+    - [x] crypto-utils.js (重要なセキュリティ機能)
+    - [x] markdown-utilities.js (少数だが重要)
+
 ### 2.3 動作確認・統合テスト
  - [ ] 修正したファイル群の依存関係確認
  - [ ] 循環参照の解決
