@@ -216,8 +216,18 @@
 - [x] 287-296行解析済み (src/otlp-metrics-exporter.js, src/float-utils.js, src/base64-utils.js)
 - [x] 277-286行解析済み (src/undici-headers.js, src/undici-response.js, src/undici-request.js, src/weak-ref-compatibility.js)
 - [x] 267-276行解析済み (src/http-request-sender.js, src/http2-client.js, src/undici-pool-base.js, src/proxy-agent.js)
-- [ ] 247-266行解析中
-- [ ] 227-246行解析中
-- [ ] 207-226行解析中
-- [ ] 187-206行解析中
-- [ ] 167-186行解析中
+- [x] 247-266行解析済み (src/formdata-processor.js, src/http-request-builder.js, src/stream-handler.js, src/http-parser.js)
+- [x] 236-246行解析済み (src/https-proxy-agent.js拡張, src/undici-symbols.js, src/undici-errors.js)
+- [x] 230-235行解析済み (src/https-proxy-agent.js, src/proxy-response-parser.js)
+- [x] 207-210行解析済み (src/date-time-utils.js, src/aws-service-exceptions.js, src/ec2-metadata-service.js, src/url-security-validator.js)
+- [x] 187-206行解析済み (src/aws-signature-v4.js拡張, src/aws-sdk-sigv4-signer.js)
+- [x] 167-186行解析済み (src/syntax-highlighter.js, src/language-definitions.js)
+- [ ] 147-166行解析中
+- [ ] 127-146行解析中
+- [ ] 107-126行解析中
+- [ ] 87-106行解析中
+- [ ] 67-86行解析中
+- [ ] 47-66行解析中
+- [ ] 27-46行解析中
+- [ ] 7-26行解析中
+- [ ] 0-6行解析中

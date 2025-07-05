@@ -35,6 +35,53 @@ class SignatureV4 {
     this.credentials = options.credentials;
   }
 
+  /**
+   * Create string to sign for AWS Signature V4
+   */
+  async createStringToSign(algorithm, credentialScope, canonicalRequest, datetime) {
+    const hasher = new this.sha256();
+    hasher.update(toUint8Array(canonicalRequest));
+    const hashedRequest = await hasher.digest();
+    
+    return `${algorithm}
+${datetime}
+${credentialScope}
+${toHex(hashedRequest)}`;
+  }
+
+  /**
+   * Get canonical path with proper URI escaping
+   */
+  getCanonicalPath({ path }) {
+    if (this.uriEscapePath) {
+      const segments = [];
+      for (const segment of path.split('/')) {
+        if (segment?.length === 0) continue;
+        if (segment === '.') continue;
+        if (segment === '..') {
+          segments.pop();
+        } else {
+          segments.push(segment);
+        }
+      }
+      
+      const normalizedPath = `${path?.startsWith('/') ? '/' : ''}${segments.join('/')}${segments.length > 0 && path?.endsWith('/') ? '/' : ''}`;
+      return escapeUri(normalizedPath).replace(/%2F/g, '/');
+    }
+    return path;
+  }
+
+  /**
+   * Validate resolved credentials object
+   */
+  validateResolvedCredentials(credentials) {
+    if (typeof credentials !== 'object' || 
+        typeof credentials.accessKeyId !== 'string' || 
+        typeof credentials.secretAccessKey !== 'string') {
+      throw new Error('Resolved credential object is not valid');
+    }
+  }
+
   async sign(request, options = {}) {
     const signingDate = options.signingDate || new Date();
     const { longDate, shortDate } = formatDate(signingDate);

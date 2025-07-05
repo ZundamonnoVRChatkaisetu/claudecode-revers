@@ -603,3 +603,215 @@
       - `proxy-authorization`ヘッダー：Base64エンコード認証情報
     - TLS設定：`requestTls`（対象サーバー用）・`proxyTls`（プロキシサーバー用）分離
     - 接続ファクトリー：`clientFactory`でカスタムクライアント作成機能
+
+- [x] 247-266行解析済み (src/formdata-processor.js, src/http-request-builder.js, src/stream-handler.js, src/http-parser.js)
+  **処理内容詳細:**
+  - **FormData/Multipart処理 (eC0関数)**
+    - boundary生成：時刻ベース16進数ランダム境界線生成
+    - ファイル形式判定：`aC0(A)` File/Blob判定機能
+    - `extractBody`メイン処理：
+      - FormData：`multipart/form-data; boundary=${Y}`ヘッダー設定
+      - エンコード処理：`dG1.encode()`でマルチパートエンコーディング
+      - ストリーム生成：非同期ジェネレーター`async function*()`
+    - ファイルサイズ計算：`G+=R.byteLength+q.size+V.byteLength`
+    - Content-Type自動設定：Blobタイプから自動判定
+  - **HTTPリクエストボディ処理**
+    - Body型判定：String/Buffer/ReadableStream/AsyncIterable対応
+    - 長さ計算：`Buffer.byteLength(I)` バイト長算出
+    - ストリーム制御：`qi9(A)` ReadableStream変換
+    - Keepalive制御：`if(B)throw new TypeError("keepalive")`
+    - 擾乱状態チェック：`Qs.isDisturbed(A)||A.locked`
+  - **ストリーム管理・クローン機能**
+    - `xi9`関数：セーフボディ抽出・検証付き
+    - `fi9`関数：ボディクローン・Tee分岐処理
+    - `vi9`関数：AbortSignal監視・中断エラー処理
+    - WeakRef登録：`Cg1.register(A,new WeakRef(Q))`
+  - **Fetch API Body Mixin実装 (bi9)**
+    - `.blob()`：Blobオブジェクト変換
+    - `.arrayBuffer()`：ArrayBuffer変換
+    - `.text()`：UTF-8テキスト変換
+    - `.json()`：JSON.parse実行
+    - `.formData()`：FormData解析（multipart/urlencoded対応）
+    - `.bytes()`：Uint8Array変換
+  - **HTTPリクエストライター (Cn9関数)**
+    - リクエストライン構築：`${Q} ${D} HTTP/1.1\r\n`
+    - ヘッダー処理：Host/Connection/Upgrade/Content-Length設定
+    - パイプライン制御：keep-alive/close判定
+    - ボディタイプ別処理：Buffer/Blob/Stream/Iterable対応
+    - セキュリティ検証：Content-Length mismatch警告
+  - **HTTPストリーム処理 (Jn9/FJ0関数)**
+    - `wg1`クラス：HTTPリクエストライター実装
+    - ストリーム監視：`data`/`end`/`error`/`close`イベント
+    - バックプレッシャー制御：`!W.write(K)&&this.pause`
+    - チャンク処理：Transfer-Encoding chunked対応
+    - アボート制御：`YJ0` RequestAbortedError処理
+  - **WebAssembly HTTPパーサー**
+    - LLHTTP WebAssembly実装：`Gn9()`初期化関数
+    - パーサーコールバック：`wasm_on_url`/`wasm_on_status`等
+    - ステータス処理：`zD.onStatus(new cG1(fz.buffer,G,I))`
+    - ヘッダー処理：`onHeaderField`/`onHeaderValue`分離処理
+    - ボディ処理：`onBody`/`onMessageComplete`完了制御
+    - エラー処理：`pi9` HTTPParserError例外
+  - **HTTP/1.1プロトコル実装 (JJ0クラス)**
+    - タイムアウト管理：Headers/Body/Idle timeout制御
+    - レスポンス解析：ステータスコード・ヘッダー・ボディ分離
+    - Keep-Alive処理：`parseKeepAliveTimeout`解析
+    - アップグレード処理：WebSocket/HTTP2アップグレード対応
+    - コンテンツ長検証：`ui9` ResponseContentLengthMismatchError
+
+- [x] 236-246行解析済み (src/https-proxy-agent.js拡張, src/undici-symbols.js, src/undici-errors.js)
+  **処理内容詳細:**
+  - **HTTPSプロキシエージェント拡張実装**
+    - プロキシ接続の完了処理：`proxyConnect`イベント発火
+    - TLSアップグレード：`HY0.connect()`でHTTPS接続確立
+    - セキュアエンドポイント判定：`B.secureEndpoint`によるTLS判定
+    - ソケット管理：`A.once("socket", ad9)`でソケット継続処理
+    - エラー処理：プロキシ失敗時のレスポンスバッファー再生
+    - プロトコル配列：`["http", "https"]`対応プロトコル定義
+  - **Undiciライブラリ内部シンボル定義**
+    - 接続管理：`kClose`, `kDestroy`, `kDispatch`, `kUrl`, `kConnect`
+    - タイムアウト管理：`kKeepAliveDefaultTimeout`, `kHeadersTimeout`, `kBodyTimeout`
+    - キューイング：`kQueue`, `kRunning`, `kPending`, `kBlocking`, `kFree`
+    - HTTP/2サポート：`kHTTP2Session`, `kHTTP2SessionState`, `kMaxConcurrentStreams`
+    - プロキシエージェント：`kProxy`, `kNoProxyAgent`, `kHttpProxyAgent`, `kHttpsProxyAgent`
+    - セキュリティ：`kStrictContentLength`, `kMaxRedirections`, `kMaxResponseSize`
+  - **Undiciエラークラス群実装**
+    - `UndiciError`基底クラス：`UND_ERR`コード、name/message標準化
+    - 接続エラー：`ConnectTimeoutError`（UND_ERR_CONNECT_TIMEOUT）
+    - ヘッダーエラー：`HeadersTimeoutError`（UND_ERR_HEADERS_TIMEOUT）、`HeadersOverflowError`
+    - ボディエラー：`BodyTimeoutError`（UND_ERR_BODY_TIMEOUT）
+    - レスポンスエラー：`ResponseStatusCodeError`（status/headers/body含む）
+    - 引数・戻り値エラー：`InvalidArgumentError`, `InvalidReturnValueError`
+    - 中断エラー：`AbortError`, `RequestAbortedError`（UND_ERR_ABORTED）
+    - クライアントエラー：`ClientDestroyedError`, `ClientClosedError`
+    - HTTPパーサーエラー：`HTTPParserError`（HPEコード対応）
+    - プロキシエラー：`SecureProxyConnectionError`（UND_ERR_PRX_TLS）
+
+- [x] 230-235行解析済み (src/https-proxy-agent.js, src/proxy-response-parser.js)
+  **処理内容詳細:**
+  - **HTTPSプロキシエージェント実装**
+    - ソケット管理システム：`incrementSockets`/`decrementSockets`でカウント制御
+    - セキュアエンドポイント判定：`isSecureEndpoint`でHTTPS判定機能
+    - プロトコル自動検出：`protocol`プロパティでHTTP/HTTPS切り替え
+    - デフォルトポート管理：HTTPS=443、HTTP=80の自動設定
+    - `maxSockets`/`maxTotalSockets`制限：無限設定時の最適化
+    - 名前生成：`getName`でエージェント識別子作成
+  - **プロキシ接続処理**
+    - `createSocket`：非同期プロキシ接続確立
+    - Promise連鎖：`connect`→`addRequest`→コールバック処理
+    - エラーハンドリング：接続失敗時の適切なクリーンアップ
+    - ソケットカウンタ管理：接続前後の適切なカウント処理
+  - **プロキシレスポンス解析 (ud9関数)**
+    - 非同期プロキシレスポンス読み取り：`Promise`ベース実装
+    - HTTP ヘッダー解析：`\r\n\r\n`区切りでヘッダー終了検出
+    - ステータスライン解析：`statusCode`、`statusText`抽出
+    - ヘッダー配列処理：複数値ヘッダー（配列化）対応
+    - CONNECTレスポンス検証：プロキシサーバーからの応答検証
+    - バッファリング：部分受信データの蓄積・結合処理
+  - **HTTPSプロキシエージェント（Rb1クラス）**
+    - コンストラクター：プロキシURL解析・オプション設定
+    - `connectOpts`：TLS/TCP接続設定（ALPN、host、port）
+    - プロキシヘッダー管理：動的ヘッダー生成機能
+    - IPv6対応：`qG1.isIPv6`でIPv6アドレス判定・フォーマット
+    - 認証処理：Basic認証のBase64エンコーディング
+    - Keep-Alive制御：`Proxy-Connection`ヘッダー管理
+
+- [x] 207-210行解析済み (src/date-time-utils.js, src/aws-service-exceptions.js, src/ec2-metadata-service.js, src/url-security-validator.js)
+  **処理内容詳細:**
+  - **UTC日時処理システム (z00関数)**
+    - UTC文字列生成：`dateToUtcString`でGMT形式出力
+    - 曜日配列：`["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]`
+    - 月名配列：`["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]`
+    - ゼロパディング：10未満の数値に`0`接頭語追加
+    - GMT形式：`${aU9[D]}, ${Y} ${tk1[Q]} ${B} ${W}:${C}:${J} GMT`
+  - **RFC-3339/RFC-7231日時パーサー**
+    - RFC-3339正規表現：`/^(\d{4})-(\d{2})-(\d{2})[tT](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?[zZ]$/`
+    - オフセット対応：`[-+]\d{2}:\d{2}`パターン処理
+    - タイムゾーン処理：`Z`(UTC)・オフセット計算
+    - 複数フォーマット対応：`eU9`,`Aw9`,`Bw9`正規表現
+    - エポックタイムスタンプ：`parseEpochTimestamp`でDate変換
+    - 無限値・非数値エラー処理：`NaN`,`Infinity`,`-Infinity`検出
+  - **AWSサービス例外処理システム**
+    - `ServiceException`クラス：AWS SDK例外基底クラス
+    - プロトタイプチェーン：`Object.setPrototypeOf`で継承構造
+    - `$fault`/`$metadata`プロパティ：client/server fault判定
+    - 静的判定メソッド：`isInstance`でインスタンス検証
+    - Symbol.hasInstance：カスタムinstanceof動作
+    - `decorateServiceException`：例外オブジェクト装飾機能
+    - `throwDefaultError`：デフォルトエラー生成・投出
+    - メタデータ抽出：HTTPステータスコード・リクエストID処理
+  - **EC2メタデータサービス (IMDS)**
+    - IMDSv1/v2対応：`fromInstanceMetadata`プロバイダー
+    - 認証情報検証：`isImdsCredentials`で構造検証
+    - セキュリティトークン：`x-aws-ec2-metadata-token`ヘッダー
+    - フォールバック制御：v1無効化設定対応
+    - 静的安定性：`staticStabilityProvider`で期限延長
+    - エンドポイント設定：IPv4/IPv6対応・環境変数設定
+    - タイムアウト・リトライ：設定可能な接続制御
+  - **URLセキュリティ検証 (checkUrl)**
+    - HTTPS必須検証：非セキュア接続の制限
+    - ローカルホスト許可：`127.0.0.0/8`,`[::1/128]`CIDR
+    - ECSコンテナホスト：`169.254.170.2`専用許可
+    - IPv6対応：`[fd00:ec2::23]`メタデータエンドポイント
+    - プロトコル検証：HTTPS以外の厳格な制限
+    - セキュリティエラー：不正URL検出時の詳細メッセージ
+
+- [x] 187-206行解析済み (src/aws-signature-v4.js拡張, src/aws-sdk-sigv4-signer.js)
+  **処理内容詳細:**
+  - **AWS Signature V4拡張実装**
+    - `createStringToSign`メソッド：SHA256ハッシュ使用の署名文字列生成
+      - AWS4-HMAC-SHA256形式でタイムスタンプ・スコープ・リクエストハッシュ含む
+    - `getCanonicalPath`メソッド：URLパス正規化処理
+      - `.`・`..`セグメント処理、パスのノーマライズ機能
+      - URIエスケープ処理（`%2F`を`/`に変換）
+      - `uriEscapePath`オプションによる条件制御
+    - `validateResolvedCredentials`メソッド：認証情報検証
+      - `accessKeyId`・`secretAccessKey`の型・存在チェック
+    - `formatDate`関数：ISO 8601形式の日付をAWS署名用に変換
+    - `getCanonicalHeaderList`関数：ヘッダーキーをソート・セミコロン結合
+  - **AWS SDK SigV4 Signer実装**
+    - SignatureV4クラス拡張：`presign`・`sign`・`signEvent`・`signMessage`メソッド
+    - 事前署名URL生成：`presign`で最大1週間の有効期限設定
+    - セッショントークン処理：`credentials.sessionToken`の自動設定
+    - クエリパラメーター管理：`X-Amz-*`署名パラメーター自動生成
+    - イベント署名：`signEvent`でWebSocketイベント署名対応
+    - メッセージ署名：`signMessage`で構造化メッセージ署名
+    - リクエスト署名：`signRequest`でHTTPリクエスト署名処理
+    - 署名キー生成：多段階HMAC鍵導出（日付→リージョン→サービス→aws4_request）
+  - **AWS SDK SigV4 設定解決システム**
+    - `AwsSdkSigV4Signer`クラス：時間同期・エラーハンドリング機能
+    - クロックスキュー検出：サーバー時間との差分300秒で補正
+    - `errorHandler`・`successHandler`：レスポンス時間による時刻補正
+    - 認証情報プロバイダー：動的認証情報解決機能
+    - リージョン・サービス名解決：設定ベース自動判定
+    - 署名オプション管理：`signingRegion`・`signingService`設定
+
+- [x] 167-186行解析済み (src/syntax-highlighter.js, src/language-definitions.js)
+  **処理内容詳細:**
+  - **構文ハイライトシステム実装**
+    - 言語固有の構文解析エンジン
+    - 正規表現ベースのトークン解析
+    - マルチ言語サポート（Swift、JavaScript、TypeScript等）
+    - キーワード・リテラル・ビルトイン関数分類
+    - ネスト構造・スコープ認識機能
+  - **Swift言語定義実装**
+    - キーワード配列：`Protocol`, `Type`, `init`, `self`プロトコル
+    - 制御構造：`if`, `for`, `while`, `switch`, `case`, `break`等
+    - 演算子パターン：カスタム演算子・Unicode演算子対応
+    - 文字列処理：補間・エスケープ・マルチライン文字列
+    - 数値リテラル：2進・8進・16進・浮動小数点対応
+    - クラス・構造体・プロトコル・拡張の解析
+    - 関数・メソッド・サブスクリプト定義認識
+    - 属性・ディレクティブ処理（`@available`, `@objc`等）
+  - **正規表現パターンマッチング**
+    - `Mb`関数：先読みアサーション生成
+    - `z3`関数：パターン結合・連結処理
+    - `sZ`関数：選択パターン生成（OR演算）
+    - `Fj1`関数：単語境界認識機能
+    - Unicode文字クラス対応・国際化文字処理
+  - **トークン分類システム**
+    - 変数・定数・パラメーター識別
+    - 型注釈・ジェネリクス解析
+    - コメント・文字列・数値の区別
+    - 演算子・区切り文字・キーワード分離
+    - エラー処理・不正構文検出
