@@ -185,5 +185,3 @@
 - [x] 757-766行解析済み(src/todo-management.js)
 - [x] 747-756行解析済み(src/web-fetch.js)
 - [x] 737-746行解析済み(src/web-fetch.js)
-- [x] 727-736行解析済み(src/telemetry.js, src/ripgrep-integration.js, src/web-fetch.js)
-- [x] 717-726行解析済み(src/config-utils.js, src/settings-manager.js, src/install-method-detector.js)

@@ -498,6 +498,152 @@ Before executing the command, please follow these steps:
     }
 
     /**
+     * ファイルが実行可能かどうかをチェック
+     */
+    isExecutable(filePath) {
+        try {
+            fs.accessSync(filePath, fs.constants.X_OK);
+            return true;
+        } catch (error) {
+            try {
+                // Fallback: try running --version command to check executability
+                // Assuming jU0 is a function to execute child process synchronously
+                // jU0(`${filePath} --version`, {timeout: 1000, stdio: "ignore"});
+                return true;
+            } catch {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * 実行可能なシェルを検出
+     */
+    detectShell() {
+        const getWhichPath = (cmd) => {
+            try {
+                // Assuming jU0 is a function to execute child process synchronously
+                // return jU0(`which ${cmd}`, {stdio: ["ignore", "pipe", "ignore"]}).toString().trim();
+                return null; // Placeholder
+            } catch {
+                return null;
+            }
+        };
+
+        const shellEnv = process.env.SHELL;
+        const isPosixShell = shellEnv && (shellEnv.includes("bash") || shellEnv.includes("zsh"));
+        const isBash = shellEnv?.includes("bash");
+
+        const zshPath = getWhichPath("zsh");
+        const bashPath = getWhichPath("bash");
+
+        const commonPaths = ["/bin", "/usr/bin", "/usr/local/bin", "/opt/homebrew/bin"];
+        let candidatePaths = (isBash ? ["bash", "zsh"] : ["zsh", "bash"]).flatMap((shellName) =>
+            commonPaths.map((p) => `${p}/${shellName}`)
+        );
+
+        if (isBash) {
+            if (bashPath) candidatePaths.unshift(bashPath);
+            if (zshPath) candidatePaths.push(zshPath);
+        } else {
+            if (zshPath) candidatePaths.unshift(zshPath);
+            if (bashPath) candidatePaths.push(bashPath);
+        }
+
+        if (isPosixShell && this.isExecutable(shellEnv)) {
+            candidatePaths.unshift(shellEnv);
+        }
+
+        const foundShell = candidatePaths.find((p) => p && this.isExecutable(p));
+
+        if (!foundShell) {
+            const errorMessage = "No suitable shell found. Claude CLI requires a Posix shell environment. Please ensure you have a valid shell installed and the SHELL environment variable set.";
+            // h1(new Error(errorMessage)); // Assuming h1 logs the error
+            throw new Error(errorMessage);
+        }
+        return foundShell;
+    }
+
+    /**
+     * シェル環境のスナップショットを作成
+     */
+    async createShellSnapshot() {
+        const randomHex = Math.floor(Math.random() * 65536).toString(16).padStart(4, "0");
+        const snapshotFilePath = `${os.tmpdir()}/claude-shell-snapshot-${randomHex}`;
+        const shellBinary = this.detectShell();
+
+        return new Promise((resolve) => {
+            try {
+                const snapshotContent = `
+      unalias -a 2>/dev/null || true
+      
+      ${shellInitScript}
+      
+      # Aliases
+      alias | sed 's/^alias //g' | sed 's/^/alias -- /' | head -n 1000 >> ${snapshotFilePath}
+      
+      # Check for rg availability
+      if ! command -v rg >/dev/null 2>&1; then
+        echo "  alias rg='${this.getRipgrepPath()}'" >> ${snapshotFilePath}
+        echo "fi" >> ${snapshotFilePath}
+        
+        # Add PATH to the file
+        echo "export PATH='${process.env.PATH}'" >> ${snapshotFilePath}
+    `;
+
+                // Assuming yU0, SU0, e2Q, n2Q, l2Q are shell utility functions
+                // fs.writeFileSync(snapshotFilePath, snapshotContent);
+                // if (!SU0(snapshotFilePath)) {
+                //     resolve(undefined);
+                //     return;
+                // }
+                // let snapshotSize = l2Q(snapshotFilePath).size;
+                // E1("shell_snapshot_created", {snapshot_size: snapshotSize});
+                resolve(snapshotFilePath); // Placeholder
+            } catch (error) {
+                // h1(error instanceof Error ? error : new Error(String(error)));
+                // E1("shell_snapshot_error", {});
+                resolve(undefined);
+            }
+        });
+    }
+
+    /**
+     * バンドルされたripgrepのパスを取得
+     */
+    getRipgrepPath() {
+        // Placeholder for actual ripgrep path logic
+        return "/path/to/bundled/ripgrep";
+    }
+
+    /**
+     * 検出されたシェル情報とスナップショットパスを返す（メモ化）
+     */
+    async getShellInfo() {
+        const snapshotFilePath = await this.createShellSnapshot();
+        return {binShell: this.detectShell(), snapshotFilePath: snapshotFilePath};
+    }
+
+    /**
+     * シェルコマンドを実行
+     */
+    async executeShellCommand(command, options, shellOptions, useSpecificShell) {
+        const { binShell, snapshotFilePath } = await this.getShellInfo();
+        let actualShell = useSpecificShell || binShell;
+        const randomHex = Math.floor(Math.random() * 65536).toString(16).padStart(4, "0");
+        const cwdTempDir = `${os.tmpdir()}/claude-${randomHex}-cwd`;
+        const quotedCommand = os.default.quote([command, "<", "/dev/null"]);
+
+        // Placeholder for actual command execution logic
+        // if (actualShell.includes("bash") && !options.noLoginShell) {
+        //     // Execute with snapshot
+        // } else {
+        //     // Execute without snapshot
+        // }
+        return { stdout: "", stderr: "", exitCode: 0 }; // Placeholder
+    }
+
+    /**
      * Agentツール使用判定
      */
     shouldUseAgentTool(searchContext = {}) {

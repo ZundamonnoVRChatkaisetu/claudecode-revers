@@ -4,15 +4,18 @@
 
 const fs = require('fs');
 const { join } = require('path');
-const { J9, iA } = require('./logger'); // Assuming logger is available
-const { E1 } = require('./telemetry'); // Assuming telemetry is available
-const { V_ } = require('./error-utils'); // Assuming error-utils is available
+const { J9, iA } = require('./logger');
+const { E1 } = require('./telemetry');
+const { V_ } = require('./error-utils');
+
+// Global config file name
+const configFileName = 'config.json'; // RY variable
 
 // Global config file path
 function getGlobalConfigPath() {
     // This should be a platform-specific path, e.g., ~/.claude/config.json
     // For now, using a placeholder
-    return join(process.env.HOME || process.env.USERPROFILE, ".claude", "config.json");
+    return join(process.env.HOME || process.env.USERPROFILE, ".claude", configFileName);
 }
 
 // Function to validate if a key is a valid array config key
@@ -33,7 +36,7 @@ function addConfigValue(key, values, isGlobal, exitOnError = true) {
     }
 
     if (isGlobal) {
-        let config = require('./settings-manager').getGlobalConfig();
+        let config = getGlobalConfig();
         let currentValues = config[key] || [];
         let newSet = new Set(currentValues);
         let originalSize = newSet.size;
@@ -60,7 +63,7 @@ function addConfigValue(key, values, isGlobal, exitOnError = true) {
 function removeConfigValue(key, values, isGlobal, exitOnError = true) {
     E1("tengu_config_remove", {key, global: isGlobal, count: values.length});
     if (isGlobal) {
-        let config = require('./settings-manager').getGlobalConfig();
+        let config = getGlobalConfig();
         if (!(key in config) || !Array.isArray(config[key])) {
             if (console.error(`Error: '${key}' is not a valid array config key in global config`), exitOnError) process.exit(1);
             else return;
@@ -152,5 +155,6 @@ module.exports = {
     addConfigValue,
     removeConfigValue,
     globalConfigCache,
-    getGlobalConfig
+    getGlobalConfig,
+    configFileName
 };
