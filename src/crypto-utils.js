@@ -4,33 +4,33 @@
 import * as crypto from "crypto";
 
 // Base64URL エンコーディング関数
-function _9A(A) {
-    return A.toString("base64")
+function encodeBase64URL(buffer) {
+    return buffer.toString("base64")
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=/g, "");
 }
 
 // ランダムバイト生成（32バイト）
-function Mv2() {
-    return _9A(crypto.randomBytes(32));
+function generateRandomString() {
+    return encodeBase64URL(crypto.randomBytes(32));
 }
 
 // SHA256ハッシュ生成
-function Rv2(A) {
-    let B = crypto.createHash("sha256");
-    B.update(A);
-    return _9A(B.digest());
+function generateSHA256Hash(input) {
+    let hash = crypto.createHash("sha256");
+    hash.update(input);
+    return encodeBase64URL(hash.digest());
 }
 
 // ランダム状態生成
-function Ov2() {
-    return _9A(crypto.randomBytes(32));
+function generateRandomState() {
+    return encodeBase64URL(crypto.randomBytes(32));
 }
 
-module.exports = {
-    _9A,
-    Mv2,
-    Rv2,
-    Ov2
+export {
+    encodeBase64URL,
+    generateRandomString,
+    generateSHA256Hash,
+    generateRandomState
 };

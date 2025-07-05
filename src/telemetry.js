@@ -7,6 +7,12 @@ const { PB, WA } = require('./system-core'); // Assuming PB and WA are functions
 const { O0 } = require('./utils'); // Assuming O0 is a utility for memoization or async operations
 const { oU0, Iw0, cw0, eU0, xz0, hz0, nw0, V_ } = require('./telemetry-utils'); // Assuming these are telemetry utility functions
 
+// Utility function for notification-system.js
+export async function sendTelemetry(eventName, data) {
+    // Stub implementation - would integrate with existing telemetry system
+    console.log(`[TELEMETRY] ${eventName}:`, data);
+}
+
 // Telemetry configuration defaults
 const telemetryConfigDefaults = {
     OTEL_METRICS_INCLUDE_SESSION_ID: true,

@@ -256,4 +256,11 @@ Last commit: ${lastCommit}
     }
 }
 
+// Utility function for notification-system.js
+export function getEnvironmentInfo() {
+    return {
+        terminal: process.env.TERM_PROGRAM || process.env.TERM || 'unknown'
+    };
+}
+
 export default EnvironmentInfo;

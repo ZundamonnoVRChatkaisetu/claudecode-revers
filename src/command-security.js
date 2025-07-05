@@ -6,10 +6,18 @@ const { isAbsolute, resolve } = require('path');
 
 // Import required utilities
 const { shellParser, QUOTE_ESCAPE_CHAR, SINGLE_QUOTE_ESCAPE_CHAR } = require('./shell-parser');
-const { parseCommandList } = require('./command-parser');
 const VALID_FILE_DESCRIPTORS = new Set(['1', '2', '0']);
 
-// Additional imports\nconst { parseShellTokens, splitPipeCommands } = require('./command-parser');\nconst { bashToolImplementation } = require('./bash-tool-core');\nconst TOOL_NAME = 'Bash';\n\n// Stub functions (require actual implementation)\nfunction isPathAllowed(path, context) {\n    // TODO: Implement actual path permission checking\n    return true;\n}
+// Additional imports
+const { parseShellTokens, splitPipeCommands } = require('./command-parser');
+const { bashToolImplementation } = require('./bash-tool-core');
+const TOOL_NAME = 'Bash';
+
+// Stub functions (require actual implementation)
+function isPathAllowed(path, context) {
+    // TODO: Implement actual path permission checking
+    return true;
+}
 
 // Shell control operators
 const CONTROL_OPERATORS = new Set(["&&", "||", ";", ";;", "|"]);
@@ -471,29 +479,86 @@ Input: git status
 Output: Shows working tree status`)
 });
 
+// 未定義関数の実装
+
+/**
+ * コマンドリストの解析
+ */
+function parseCommandList(command) {
+    if (!command || typeof command !== 'string') {
+        return [];
+    }
+    return command.split(/[;&|]{1,2}/).map(cmd => cmd.trim()).filter(cmd => cmd.length > 0);
+}
+
+/**
+ * 現在のディレクトリ取得
+ */
+function getCurrentDirectory() {
+    return process.cwd();
+}
+
+/**
+ * 作業ディレクトリ取得
+ */
+function getWorkingDirectory() {
+    return process.env.CLAUDE_WORK_DIR || process.cwd();
+}
+
+/**
+ * ルール取得（タイプ別）
+ */
+function getRulesByType(context, toolName, ruleType) {
+    const rules = new Map();
+    if (context && context.rules) {
+        for (const [key, value] of Object.entries(context.rules)) {
+            if (key.includes(toolName) && key.includes(ruleType)) {
+                rules.set(key, value);
+            }
+        }
+    }
+    return rules;
+}
+
+/**
+ * timeout maximum value
+ */
+function getMaxTimeout() {
+    return 600000; // 10 minutes
+}
+
+/**
+ * 簡易zodスキーマ代替
+ */
+const simpleSchema = {
+    strictObject: (obj) => obj,
+    string: () => ({ describe: (desc) => ({ _description: desc }) }),
+    number: () => ({ 
+        optional: () => ({ describe: (desc) => ({ _description: desc }) }),
+        describe: (desc) => ({ _description: desc })
+    })
+};
+
 module.exports = {
-    uM2,
-    sU6,
-    oU6,
-    mM2,
-    tU6,
-    cM2,
-    fAA,
-    dH1,
-    Qw6,
-    vAA,
-    Dw6,
-    pM2,
-    iM2,
-    bAA,
-    nM2,
-    lM2,
-    gAA,
-    Iw6,
-    Gw6,
-    Zw6,
-    Fw6,
-    aM2,
-    sM2,
-    commandInjectionTemplate
+    verifyPipelineSafety,
+    hasMultipleCommands,
+    checkPipeRightHandPermissions,
+    checkPipePermissions,
+    validateCdAccess,
+    createRulePattern,
+    createRuleSuggestion,
+    createRuleSuggestionWithPattern,
+    extractCommandFromPattern,
+    parseCommandPattern,
+    findMatchingRules,
+    getRuleMatches,
+    makePermissionDecision,
+    handleSpecialCommands,
+    parseCommandList,
+    getCurrentDirectory,
+    getWorkingDirectory,
+    getRulesByType,
+    getMaxTimeout,
+    commandInjectionTemplate,
+    m: simpleSchema
 };

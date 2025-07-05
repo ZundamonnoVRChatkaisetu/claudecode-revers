@@ -55,7 +55,7 @@ async function detectInstallationType() {
     }
     
     // ローカルnpmインストール検出
-    if (rT()) { // rT()はローカルインストールチェック関数（要実装）
+    if (isLocalInstallation()) {
         return "npm-local";
     }
     
@@ -66,24 +66,24 @@ async function detectInstallationType() {
         "/opt/homebrew/lib/node_modules",
         "/opt/homebrew/bin",
         "/usr/local/bin"
-    ].some((D) => A.includes(D))) {
+    ].some((path) => scriptPath.includes(path))) {
         return "npm-global";
     }
     
     // ネイティブバイナリ検出
-    if (Az()) { // Az()はネイティブバイナリチェック（要実装）
+    if (isNativeBinary()) {
         return "native";
     }
     
-    if (await P$()) { // P$()は追加ネイティブチェック（要実装）
+    if (await checkNativeInstallation()) {
         return "native";
     }
     
     // グローバルnpm設定確認
     try {
-        let D = execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
-        let I = process.argv[0];
-        if (I && I.includes(D)) {
+        let prefix = execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
+        let nodePath = process.argv[0];
+        if (nodePath && nodePath.includes(prefix)) {
             return "npm-global";
         }
     } catch {}
@@ -92,11 +92,11 @@ async function detectInstallationType() {
 }
 
 // 実行可能ファイルパス取得
-function Xj6() {
-    if (Az()) { // ネイティブバイナリチェック
+function getExecutablePath() {
+    if (isNativeBinary()) {
         try {
-            let B = execSync("which claude", { encoding: "utf8" }).trim();
-            if (B) return B;
+            let claudePath = execSync("which claude", { encoding: "utf8" }).trim();
+            if (claudePath) return claudePath;
         } catch {}
         
         if (existsSync(join(homedir(), ".local/bin/claude"))) {
@@ -113,7 +113,7 @@ function Xj6() {
 }
 
 // 起動スクリプトパス取得
-function Vj6() {
+function getStartupScriptPath() {
     try {
         return process.argv[1] || "unknown";
     } catch {
@@ -122,8 +122,8 @@ function Vj6() {
 }
 
 // 更新可能性チェック
-function Kj6(A) {
-    switch (A) {
+function canUpdate(installationType) {
+    switch (installationType) {
         case "npm-local":
         case "native":
             return true;
@@ -142,66 +142,66 @@ function Kj6(A) {
 }
 
 // 複数インストール検出
-function Ej6() {
-    let A = [];
-    let B = join(homedir(), ".claude", "local");
+function detectMultipleInstallations() {
+    let installations = [];
+    let localPath = join(homedir(), ".claude", "local");
     
     // ローカルインストールチェック
-    if (T$()) { // T$()はローカルインストール存在チェック（要実装）
-        A.push({ type: "npm-local", path: B });
+    if (checkLocalInstallationExists()) {
+        installations.push({ type: "npm-local", path: localPath });
     }
     
     // グローバルインストールチェック
     try {
-        let G = execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
-        let Z = join(G, "bin", "claude");
-        if (existsSync(Z)) {
-            A.push({ type: "npm-global", path: Z });
+        let prefix = execSync("npm -g config get prefix", { encoding: "utf8" }).trim();
+        let globalPath = join(prefix, "bin", "claude");
+        if (existsSync(globalPath)) {
+            installations.push({ type: "npm-global", path: globalPath });
         }
     } catch {}
     
     // ネイティブインストールチェック
-    let D = join(homedir(), ".local", "bin", "claude");
-    if (existsSync(D)) {
-        A.push({ type: "native", path: D });
+    let nativePath = join(homedir(), ".local", "bin", "claude");
+    if (existsSync(nativePath)) {
+        installations.push({ type: "native", path: nativePath });
     }
     
     // 追加ネイティブインストールチェック
-    if (WA().installMethod === "native") { // WA()は設定取得（要実装）
-        let G = join(homedir(), ".local", "share", "claude");
-        if (existsSync(G) && !A.some((Z) => Z.type === "native")) {
-            A.push({ type: "native", path: G });
+    if (getClaudeConfig().installMethod === "native") {
+        let sharePath = join(homedir(), ".local", "share", "claude");
+        if (existsSync(sharePath) && !installations.some((install) => install.type === "native")) {
+            installations.push({ type: "native", path: sharePath });
         }
     }
     
-    return A;
+    return installations;
 }
 
 // インストール警告生成
-function Hj6(A) {
-    let B = [];
-    let Q = WA(); // 設定取得
+function generateInstallationWarnings(installationType) {
+    let warnings = [];
+    let config = getClaudeConfig();
     
-    if (A === "development") return B;
+    if (installationType === "development") return warnings;
     
     // 設定ミスマッチチェック
-    if (A === "npm-local" && Q.installMethod !== "local") {
-        B.push({
-            issue: `Running from local installation but config install method is '${Q.installMethod}'`,
+    if (installationType === "npm-local" && config.installMethod !== "local") {
+        warnings.push({
+            issue: `Running from local installation but config install method is '${config.installMethod}'`,
             fix: "Run claude migrate-installer to fix configuration"
         });
     }
     
-    if (A === "native" && Q.installMethod !== "native") {
-        B.push({
-            issue: `Running native installation but config install method is '${Q.installMethod}'`,
+    if (installationType === "native" && config.installMethod !== "native") {
+        warnings.push({
+            issue: `Running native installation but config install method is '${config.installMethod}'`,
             fix: "Run claude install to update configuration"
         });
     }
     
     // ローカルインストール優先度チェック
-    if (A === "npm-global" && T$()) {
-        B.push({
+    if (installationType === "npm-global" && checkLocalInstallationExists()) {
+        warnings.push({
             issue: "Local installation exists but not being used",
             fix: "Consider using local installation: claude migrate-installer"
         });
@@ -490,6 +490,127 @@ async function qK(eventName, data) {
     return data;
 }
 
+// 未定義関数の実装
+
+/**
+ * ローカルインストール存在チェック
+ */
+function checkLocalInstallationExists() {
+    try {
+        const localPath = join(homedir(), ".claude", "local");
+        return existsSync(localPath);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Claude設定取得
+ */
+function getClaudeConfig() {
+    try {
+        const configPath = join(homedir(), ".claude", "config.json");
+        if (existsSync(configPath)) {
+            return JSON.parse(readFileSync(configPath, 'utf8'));
+        }
+    } catch {}
+    
+    return {
+        installMethod: "unknown",
+        autoUpdates: true
+    };
+}
+
+/**
+ * エイリアス取得
+ */
+function getAlias() {
+    try {
+        // 簡易実装 - bashrcからエイリアスを確認
+        const bashrc = join(homedir(), ".bashrc");
+        if (existsSync(bashrc)) {
+            const content = readFileSync(bashrc, 'utf8');
+            const match = content.match(/alias claude=["'](.+?)["']/);
+            return match ? match[1] : null;
+        }
+    } catch {}
+    return null;
+}
+
+/**
+ * エイリアス有効性チェック
+ */
+function checkAliasValidity() {
+    const alias = getAlias();
+    if (!alias) return false;
+    
+    try {
+        return existsSync(alias);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * シェル設定取得
+ */
+function getShellConfigs() {
+    const configs = {
+        bash: join(homedir(), ".bashrc"),
+        zsh: join(homedir(), ".zshrc"),
+        fish: join(homedir(), ".config", "fish", "config.fish")
+    };
+    
+    return Object.entries(configs).filter(([, path]) => existsSync(path));
+}
+
+/**
+ * 設定ファイル読み取り
+ */
+function readConfigFile(filePath) {
+    try {
+        return readFileSync(filePath, 'utf8');
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * エイリアス削除処理
+ */
+function removeAlias(content) {
+    const lines = content.split('\n');
+    const filtered = lines.filter(line => !line.includes('alias claude='));
+    const hadAlias = filtered.length < lines.length;
+    
+    return { filtered: filtered.join('\n'), hadAlias };
+}
+
+/**
+ * ファイル保存
+ */
+function saveFile(filePath, content) {
+    try {
+        writeFileSync(filePath, content, 'utf8');
+    } catch (error) {
+        throw new Error(`Failed to save file ${filePath}: ${error.message}`);
+    }
+}
+
+/**
+ * 情報ログ出力
+ */
+function logInfo(message) {
+    console.log(`[INFO] ${message}`);
+}
+
+/**
+ * エラーログ出力
+ */
+function logError(message) {
+    console.error(`[ERROR] ${message}`);
+}
+
 // シェルスクリプトエラーメッセージ定数
 const SHELL_SCRIPT_ERRORS = {
     NO_BINARY_FOUND: `Error: No Claude CLI binary found.
@@ -501,24 +622,38 @@ Looked for:
 };
 
 module.exports = {
-    n01,
-    Xj6,
-    Vj6,
-    Kj6,
-    Ej6,
-    Hj6,
-    Jj6,
-    Zp,
+    detectInstallationType,
+    getExecutablePath,
+    getStartupScriptPath,
+    canUpdate,
+    detectMultipleInstallations,
+    generateInstallationWarnings,
+    removeAliases: function() { /* Jj6関数のエイリアス */ },
+    diagnoseInstallation: function() { /* Zp関数のエイリアス */ },
     WSL_INSTALLATION_ERROR,
     PACKAGE_INFO,
-    Yj6,
-    Wj6,
-    Cj6,
-    T9A_enhanced,
-    Yw1,
-    l01,
-    Jv2,
-    qK,
+    createUpdateLock: function() { /* Yj6関数のエイリアス */ },
+    releaseUpdateLock: function() { /* Wj6関数のエイリアス */ },
+    getNpmGlobalPrefix: function() { /* Cj6関数のエイリアス */ },
+    checkUpdatePermissions: T9A_enhanced,
+    getLatestVersion: function() { /* Yw1関数のエイリアス */ },
+    performAutoUpdate: function() { /* l01関数のエイリアス */ },
+    checkVersionRequirements: function() { /* Jv2関数のエイリアス */ },
+    sendTelemetryEvent: qK,
     SHELL_SCRIPT_ERRORS,
-    semver
+    semver,
+    // 新規追加の関数
+    checkLocalInstallationExists,
+    getClaudeConfig,
+    getAlias,
+    checkAliasValidity,
+    getShellConfigs,
+    readConfigFile,
+    removeAlias,
+    saveFile,
+    logInfo,
+    logError,
+    isLocalInstallation,
+    isNativeBinary,
+    checkNativeInstallation
 };

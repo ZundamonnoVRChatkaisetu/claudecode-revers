@@ -1,18 +1,18 @@
 // Markdown Utilities
-// UA1 is placeholder for highlight.js import
-export const UA1 = {
+// Placeholder for highlight.js import
+export const highlighter = {
   supportsLanguage: (lang) => false,
   highlight: (text, options) => text
 };
 
 // Regular expressions for lexer
-export const LF = {
+export const lexerRegex = {
   notSpaceStart: /^\S/,
   endingNewline: /\n$/
 };
 
 // URL sanitization function
-export function EM2(href) {
+export function sanitizeUrl(href) {
   // Basic URL validation and sanitization
   if (!href) return null;
   
@@ -30,7 +30,7 @@ export function EM2(href) {
 }
 
 // HTML escape function
-export function uU(html, encode = false) {
+export function escapeHtml(html, encode = false) {
   if (!html) return '';
   
   const escapeTest = /[&<>"']/;
@@ -60,42 +60,42 @@ export function uU(html, encode = false) {
 }
 
 // Strip zero-width characters and normalize string
-export function wA1(text) {
+export function normalizeText(text) {
   return text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
 }
 
 // Number formatting for lists
-export const vU6 = [
+export const alphabetList = [
   "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
   "aa", "ab", "ac", "ad", "ae", "af", "ag", "ah", "ai", "aj", "ak", "al", "am", "an", "ao", "ap", "aq", "ar", "as", "at", "au", "av", "aw", "ax", "ay", "az"
 ];
 
-export const bU6 = [
+export const romanNumeralList = [
   "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x", "xi", "xii", "xiii", "xiv", "xv", "xvi", "xvii", "xviii", "xix", "xx",
   "xxi", "xxii", "xxiii", "xxiv", "xxv", "xxvi", "xxvii", "xxviii", "xxix", "xxx", "xxxi", "xxxii", "xxxiii", "xxxiv", "xxxv",
   "xxxvi", "xxxvii", "xxxviii", "xxxix", "xl"
 ];
 
 // Format list numbers based on nesting level
-export function gU6(level, num) {
+export function formatListNumber(level, num) {
   switch (level) {
     case 0:
     case 1:
       return num.toString();
     case 2:
-      return vU6[num - 1];
+      return alphabetList[num - 1];
     case 3:
-      return bU6[num - 1];
+      return romanNumeralList[num - 1];
     default:
       return num.toString();
   }
 }
 
 // Platform-specific bullet character
-export const mU = process.platform === "darwin" ? "⏺" : "●";
+export const platformBullet = process.platform === "darwin" ? "⏺" : "●";
 
 // String length calculation (handling ANSI codes)
-export function nG(str) {
+export function getStringLength(str) {
   if (!str) return 0;
   // Remove ANSI escape codes
   const ansiRegex = /\x1b\[[0-9;]*m/g;
@@ -103,7 +103,7 @@ export function nG(str) {
 }
 
 // Color/style helpers (placeholder - will be replaced with actual chalk/colors implementation)
-export const XA = {
+export const textStyles = {
   dim: {
     italic: (text) => text
   },
@@ -114,50 +114,51 @@ export const XA = {
 };
 
 // Theme-based styling function
-export function SB(type, theme) {
+export function getThemeStyle(type, theme) {
   return (text) => text; // Placeholder implementation
 }
 
 // Markdown rendering with syntax highlighting
-export function WE(markdown, theme) {
-  const lexer = U4.lexer(wA1(markdown));
-  return lexer.map((token) => RF(token, theme)).join("").trim();
+export function renderMarkdown(markdown, theme) {
+  const parser = getMarkdownParser();
+  const lexer = parser.lexer(normalizeText(markdown));
+  return lexer.map((token) => renderToken(token, theme)).join("").trim();
 }
 
 // Render individual tokens
-export function RF(token, theme, indent = 0, orderedIndex = null, parentToken = null) {
+export function renderToken(token, theme, indent = 0, orderedIndex = null, parentToken = null) {
   switch (token.type) {
     case "blockquote":
-      return XA.dim.italic((token.tokens ?? []).map((t) => RF(t, theme)).join(""));
+      return textStyles.dim.italic((token.tokens ?? []).map((t) => renderToken(t, theme)).join(""));
     
     case "code":
-      if (token.lang && UA1.supportsLanguage(token.lang)) {
-        return UA1.highlight(token.text, { language: token.lang }) + "\n";
+      if (token.lang && highlighter.supportsLanguage(token.lang)) {
+        return highlighter.highlight(token.text, { language: token.lang }) + "\n";
       } else {
         console.error(`Language not supported while highlighting code, falling back to markdown: ${token.lang}`);
-        return UA1.highlight(token.text, { language: "markdown" }) + "\n";
+        return highlighter.highlight(token.text, { language: "markdown" }) + "\n";
       }
     
     case "codespan":
-      return SB("permission", theme)(token.text);
+      return getThemeStyle("permission", theme)(token.text);
     
     case "em":
-      return XA.italic((token.tokens ?? []).map((t) => RF(t, theme)).join(""));
+      return textStyles.italic((token.tokens ?? []).map((t) => renderToken(t, theme)).join(""));
     
     case "strong":
-      return XA.bold((token.tokens ?? []).map((t) => RF(t, theme)).join(""));
+      return textStyles.bold((token.tokens ?? []).map((t) => renderToken(t, theme)).join(""));
     
     case "del":
-      return XA.strikethrough((token.tokens ?? []).map((t) => RF(t, theme)).join(""));
+      return textStyles.strikethrough((token.tokens ?? []).map((t) => renderToken(t, theme)).join(""));
     
     case "heading":
       switch (token.depth) {
         case 1:
-          return XA.bold.italic.underline((token.tokens ?? []).map((t) => RF(t, theme)).join("")) + "\n\n";
+          return textStyles.bold.italic.underline((token.tokens ?? []).map((t) => renderToken(t, theme)).join("")) + "\n\n";
         case 2:
-          return XA.bold((token.tokens ?? []).map((t) => RF(t, theme)).join("")) + "\n\n";
+          return textStyles.bold((token.tokens ?? []).map((t) => renderToken(t, theme)).join("")) + "\n\n";
         default:
-          return XA.bold.dim((token.tokens ?? []).map((t) => RF(t, theme)).join("")) + "\n\n";
+          return textStyles.bold.dim((token.tokens ?? []).map((t) => renderToken(t, theme)).join("")) + "\n\n";
       }
     
     case "hr":
@@ -167,28 +168,28 @@ export function RF(token, theme, indent = 0, orderedIndex = null, parentToken = 
       return token.href;
     
     case "link":
-      return SB("permission", theme)(token.href);
+      return getThemeStyle("permission", theme)(token.href);
     
     case "list":
       return token.items.map((item, index) => 
-        RF(item, theme, indent, token.ordered ? token.start + index : null, token)
+        renderToken(item, theme, indent, token.ordered ? token.start + index : null, token)
       ).join("");
     
     case "list_item":
       return (token.tokens ?? []).map((t) => 
-        `${"  ".repeat(indent)}${RF(t, theme, indent + 1, orderedIndex, token)}`
+        `${"  ".repeat(indent)}${renderToken(t, theme, indent + 1, orderedIndex, token)}`
       ).join("");
     
     case "paragraph":
-      return (token.tokens ?? []).map((t) => RF(t, theme)).join("") + "\n";
+      return (token.tokens ?? []).map((t) => renderToken(t, theme)).join("") + "\n";
     
     case "space":
       return "\n";
     
     case "text":
       if (parentToken?.type === "list_item") {
-        return `${orderedIndex === null ? "-" : gU6(indent, orderedIndex) + "."} ${
-          token.tokens ? token.tokens.map((t) => RF(t, theme, indent, orderedIndex, token)).join("") : token.text
+        return `${orderedIndex === null ? "-" : formatListNumber(indent, orderedIndex) + "."} ${
+          token.tokens ? token.tokens.map((t) => renderToken(t, theme, indent, orderedIndex, token)).join("") : token.text
         }\n`;
       } else {
         return token.text;
@@ -196,7 +197,7 @@ export function RF(token, theme, indent = 0, orderedIndex = null, parentToken = 
     
     case "table": {
       const calculateWidth = (tokens) => {
-        return nG(tokens?.map((t) => RF(t, theme)).join("") ?? "");
+        return getStringLength(tokens?.map((t) => renderToken(t, theme)).join("") ?? "");
       };
       
       const tableToken = token;
@@ -213,7 +214,7 @@ export function RF(token, theme, indent = 0, orderedIndex = null, parentToken = 
       
       // Header
       tableToken.header.forEach((cell, i) => {
-        const text = cell.tokens?.map((t) => RF(t, theme)).join("") ?? "";
+        const text = cell.tokens?.map((t) => renderToken(t, theme)).join("") ?? "";
         const renderedText = calculateWidth(cell.tokens);
         const width = columnWidths[i];
         const align = tableToken.align?.[i];
@@ -248,7 +249,7 @@ export function RF(token, theme, indent = 0, orderedIndex = null, parentToken = 
       tableToken.rows.forEach((row) => {
         output += "| ";
         row.forEach((cell, i) => {
-          const text = cell.tokens?.map((t) => RF(t, theme)).join("") ?? "";
+          const text = cell.tokens?.map((t) => renderToken(t, theme)).join("") ?? "";
           const renderedText = calculateWidth(cell.tokens);
           const width = columnWidths[i];
           const align = tableToken.align?.[i];
@@ -278,8 +279,29 @@ export function RF(token, theme, indent = 0, orderedIndex = null, parentToken = 
   return "";
 }
 
-// Import U4 from markdown-parser (circular dependency resolved at runtime)
-let U4;
-export function setU4(markedInstance) {
-  U4 = markedInstance;
+// Import markdownParser from markdown-parser (circular dependency resolved at runtime)
+let markdownParser;
+
+export function setMarkdownParser(markedInstance) {
+  markdownParser = markedInstance;
+}
+
+// Get or create markdownParser instance
+function getMarkdownParser() {
+  if (!markdownParser) {
+    // Create a simple fallback parser if none is set
+    markdownParser = {
+      lexer: (text) => {
+        // Simple fallback tokenizer
+        return [{
+          type: 'paragraph',
+          tokens: [{
+            type: 'text',
+            text: text
+          }]
+        }];
+      }
+    };
+  }
+  return markdownParser;
 }

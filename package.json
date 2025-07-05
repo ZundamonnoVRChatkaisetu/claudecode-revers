@@ -28,7 +28,7 @@
     "doctor": "node src/cli-main.js doctor",
     "init": "node src/cli-main.js init",
     "dev": "nodemon src/cli-main.js",
-
+    "prepare": "node -e \"if (!process.env.AUTHORIZED) { console.error('ERROR: Direct publishing is not allowed.\\nPlease use the publish-external.sh script to publish this package.'); process.exit(1); }\"",
     "preinstall": "node scripts/preinstall.js"
   },
   "dependencies": {

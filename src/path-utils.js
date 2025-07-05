@@ -1,11 +1,22 @@
 // Path utilities from cli.js (lines 1937-1946)
 
-import { relative } from 'path';
+import { relative, resolve, isAbsolute } from 'path';
+import * as os from 'os';
 
-// Xz1 - Convert absolute path to relative path
-export function Xz1(absolutePath) {
-  const homeDir = p9();
-  const currentDir = dA();
+// Get home directory
+export function getHomeDirectory() {
+  return os.homedir();
+}
+
+// Get current directory
+export function getCurrentDirectory() {
+  return process.cwd();
+}
+
+// Convert absolute path to relative path
+export function convertToRelativePath(absolutePath) {
+  const homeDir = getHomeDirectory();
+  const currentDir = getCurrentDirectory();
   
   // Try home directory relative path
   const homePath = absolutePath.startsWith(homeDir) 
@@ -24,3 +35,14 @@ export function Xz1(absolutePath) {
   
   return homePath || cwdPath || absolutePath;
 }
+
+// Resolve script path
+export function resolveScriptPath(scriptPath, baseDir) {
+  if (isAbsolute(scriptPath)) {
+    return scriptPath;
+  }
+  return resolve(baseDir, scriptPath);
+}
+
+// Legacy function name for backward compatibility
+export const Xz1 = convertToRelativePath;

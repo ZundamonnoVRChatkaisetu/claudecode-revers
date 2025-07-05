@@ -68,38 +68,38 @@ const CODE_REVIEW_TEMPLATE = {
 };
 
 // Date utility constants
-const tj6 = Math.pow(10, 8) * 24 * 60 * 60 * 1000;
-const U_3 = -tj6;
-const e01 = 43200; // seconds in 12 hours
-const s9A = 1440; // minutes in a day
+const MILLISECONDS_IN_EPOCH = Math.pow(10, 8) * 24 * 60 * 60 * 1000;
+const NEGATIVE_EPOCH = -MILLISECONDS_IN_EPOCH;
+const SECONDS_IN_HALF_DAY = 43200; // seconds in 12 hours
+const MINUTES_IN_DAY = 1440; // minutes in a day
 
 // Symbol for date construction
-const o9A = Symbol.for("constructDateFrom");
+const CONSTRUCT_DATE_FROM = Symbol.for("constructDateFrom");
 
 // Core date utility functions
-function Xp(constructor, value) {
+function constructDate(constructor, value) {
   if (typeof constructor === "function") return constructor(value);
-  if (constructor && typeof constructor === "object" && o9A in constructor) {
-    return constructor[o9A](value);
+  if (constructor && typeof constructor === "object" && CONSTRUCT_DATE_FROM in constructor) {
+    return constructor[CONSTRUCT_DATE_FROM](value);
   }
   if (constructor instanceof Date) return new constructor.constructor(value);
   return new Date(value);
 }
 
-function JW(date, constructor) {
-  return Xp(constructor || date, date);
+function normalizeDate(date, constructor) {
+  return constructDate(constructor || date, date);
 }
 
 // Date construction cache
-const ej6 = {};
+const dateConstructionCache = {};
 
-function Jb2() {
-  return ej6;
+function getDefaultOptions() {
+  return dateConstructionCache;
 }
 
 // Get UTC offset
-function t9A(date) {
-  const normalizedDate = JW(date);
+function getTimezoneOffset(date) {
+  const normalizedDate = normalizeDate(date);
   const utcDate = new Date(Date.UTC(
     normalizedDate.getFullYear(),
     normalizedDate.getMonth(),
@@ -114,34 +114,34 @@ function t9A(date) {
 }
 
 // Construct dates with context
-function Vp(constructor, ...dates) {
-  const constructDate = Xp.bind(null, constructor || dates.find(d => typeof d === "object"));
+function constructDates(constructor, ...dates) {
+  const constructDate = constructDate.bind(null, constructor || dates.find(d => typeof d === "object"));
   return dates.map(constructDate);
 }
 
 // Compare dates
-function Kp(dateLeft, dateRight) {
-  const diff = +JW(dateLeft) - +JW(dateRight);
+function compareAsc(dateLeft, dateRight) {
+  const diff = +normalizeDate(dateLeft) - +normalizeDate(dateRight);
   if (diff < 0) return -1;
   else if (diff > 0) return 1;
   return diff;
 }
 
 // Get current date
-function Xb2(constructor) {
-  return Xp(constructor, Date.now());
+function constructNow(constructor) {
+  return constructDate(constructor, Date.now());
 }
 
 // Calculate difference in months
-function Vb2(dateLeft, dateRight, options) {
-  const [left, right] = Vp(options?.in, dateLeft, dateRight);
+function differenceInMonths(dateLeft, dateRight, options) {
+  const [left, right] = constructDates(options?.in, dateLeft, dateRight);
   const yearsDiff = left.getFullYear() - right.getFullYear();
   const monthsDiff = left.getMonth() - right.getMonth();
   return yearsDiff * 12 + monthsDiff;
 }
 
 // Rounding function factory
-function Kb2(method) {
+function getRoundingFunction(method) {
   return (value) => {
     const result = (method ? Math[method] : Math.trunc)(value);
     return result === 0 ? 0 : result;
@@ -149,20 +149,20 @@ function Kb2(method) {
 }
 
 // Calculate difference in milliseconds
-function Eb2(dateLeft, dateRight) {
-  return +JW(dateLeft) - +JW(dateRight);
+function differenceInMilliseconds(dateLeft, dateRight) {
+  return +normalizeDate(dateLeft) - +normalizeDate(dateRight);
 }
 
 // Get end of day
-function Hb2(date, options) {
-  const result = JW(date, options?.in);
+function endOfDay(date, options) {
+  const result = normalizeDate(date, options?.in);
   result.setHours(23, 59, 59, 999);
   return result;
 }
 
 // Get end of month
-function zb2(date, options) {
-  const result = JW(date, options?.in);
+function endOfMonth(date, options) {
+  const result = normalizeDate(date, options?.in);
   const month = result.getMonth();
   result.setFullYear(result.getFullYear(), month + 1, 0);
   result.setHours(23, 59, 59, 999);
@@ -170,16 +170,16 @@ function zb2(date, options) {
 }
 
 // Check if date is last day of month
-function Ub2(date, options) {
-  const normalizedDate = JW(date, options?.in);
-  return +Hb2(normalizedDate, options) === +zb2(normalizedDate, options);
+function isLastDayOfMonth(date, options) {
+  const normalizedDate = normalizeDate(date, options?.in);
+  return +endOfDay(normalizedDate, options) === +endOfMonth(normalizedDate, options);
 }
 
 // Calculate difference in months with edge cases
-function wb2(dateLeft, dateRight, options) {
-  const [originalLeft, left, right] = Vp(options?.in, dateLeft, dateLeft, dateRight);
-  const sign = Kp(left, right);
-  const difference = Math.abs(Vb2(left, right));
+function differenceInMonthsWithOptions(dateLeft, dateRight, options) {
+  const [originalLeft, left, right] = constructDates(options?.in, dateLeft, dateLeft, dateRight);
+  const sign = compareAsc(left, right);
+  const difference = Math.abs(differenceInMonths(left, right));
   
   if (difference < 1) return 0;
   
@@ -189,9 +189,9 @@ function wb2(dateLeft, dateRight, options) {
   
   left.setMonth(left.getMonth() - sign * difference);
   
-  const isLastDayNotEqual = Kp(left, right) === -sign;
+  const isLastDayNotEqual = compareAsc(left, right) === -sign;
   
-  if (Ub2(originalLeft) && difference === 1 && Kp(originalLeft, right) === 1) {
+  if (isLastDayOfMonth(originalLeft) && difference === 1 && compareAsc(originalLeft, right) === 1) {
     isLastDayNotEqual = false;
   }
   
@@ -200,13 +200,13 @@ function wb2(dateLeft, dateRight, options) {
 }
 
 // Calculate difference in seconds
-function Nb2(dateLeft, dateRight, options) {
-  const diff = Eb2(dateLeft, dateRight) / 1000;
-  return Kb2(options?.roundingMethod)(diff);
+function differenceInSeconds(dateLeft, dateRight, options) {
+  const diff = differenceInMilliseconds(dateLeft, dateRight) / 1000;
+  return getRoundingFunction(options?.roundingMethod)(diff);
 }
 
 // Locale data for distance formatting
-const Ay6 = {
+const DISTANCE_FORMATS = {
   lessThanXSeconds: {
     one: "less than a second",
     other: "less than {{count}} seconds"
@@ -271,9 +271,9 @@ const Ay6 = {
 };
 
 // Format distance helper
-const qb2 = (token, count, options) => {
+const formatDistanceLocale = (token, count, options) => {
   let result;
-  const tokenValue = Ay6[token];
+  const tokenValue = DISTANCE_FORMATS[token];
   
   if (typeof tokenValue === "string") {
     result = tokenValue;
@@ -295,7 +295,7 @@ const qb2 = (token, count, options) => {
 };
 
 // Format width helper
-function Lw1(formatObject) {
+function buildFormatLongFn(formatObject) {
   return (options = {}) => {
     const width = options.width ? String(options.width) : formatObject.defaultWidth;
     return formatObject.formats[width] || formatObject.formats[formatObject.defaultWidth];
@@ -303,21 +303,21 @@ function Lw1(formatObject) {
 }
 
 // Date format definitions
-const By6 = {
+const DATE_FORMATS = {
   full: "EEEE, MMMM do, y",
   long: "MMMM do, y", 
   medium: "MMM d, y",
   short: "MM/dd/yyyy"
 };
 
-const Qy6 = {
+const TIME_FORMATS = {
   full: "h:mm:ss a zzzz",
   long: "h:mm:ss a z",
   medium: "h:mm:ss a",
   short: "h:mm a"
 };
 
-const Dy6 = {
+const DATE_TIME_FORMATS = {
   full: "{{date}} 'at' {{time}}",
   long: "{{date}} 'at' {{time}}",
   medium: "{{date}}, {{time}}",
@@ -325,14 +325,14 @@ const Dy6 = {
 };
 
 // Format long configurations
-const $b2 = {
-  date: Lw1({ formats: By6, defaultWidth: "full" }),
-  time: Lw1({ formats: Qy6, defaultWidth: "full" }),
-  dateTime: Lw1({ formats: Dy6, defaultWidth: "full" })
+const LONG_FORMATS = {
+  date: buildFormatLongFn({ formats: DATE_FORMATS, defaultWidth: "full" }),
+  time: buildFormatLongFn({ formats: TIME_FORMATS, defaultWidth: "full" }),
+  dateTime: buildFormatLongFn({ formats: DATE_TIME_FORMATS, defaultWidth: "full" })
 };
 
 // Relative format definitions
-const Iy6 = {
+const RELATIVE_FORMATS = {
   lastWeek: "'last' eeee 'at' p",
   yesterday: "'yesterday at' p",
   today: "'today at' p",
@@ -341,16 +341,16 @@ const Iy6 = {
   other: "P"
 };
 
-const Lb2 = (token, date, baseDate, options) => Iy6[token];
+const formatRelative = (token, date, baseDate, options) => RELATIVE_FORMATS[token];
 
 // Main format distance function
-function Tb2(date, baseDate, options) {
-  const defaultOptions = Jb2();
-  const locale = options?.locale ?? defaultOptions.locale ?? { formatDistance: qb2 };
+function formatDistance(date, baseDate, options) {
+  const defaultOptions = getDefaultOptions();
+  const locale = options?.locale ?? defaultOptions.locale ?? { formatDistance: formatDistanceLocale };
   const minutesInDay = 1440;
   const minutesInAlmostTwoWeeks = 2520;
   
-  const comparison = Kp(date, baseDate);
+  const comparison = compareAsc(date, baseDate);
   if (isNaN(comparison)) {
     throw new RangeError("Invalid time value");
   }
@@ -360,13 +360,13 @@ function Tb2(date, baseDate, options) {
     comparison: comparison
   });
   
-  const [laterDate, earlierDate] = Vp(
+  const [laterDate, earlierDate] = constructDates(
     options?.in,
     ...(comparison > 0 ? [baseDate, date] : [date, baseDate])
   );
   
-  const seconds = Nb2(earlierDate, laterDate);
-  const offsetCorrection = (t9A(earlierDate) - t9A(laterDate)) / 1000;
+  const seconds = differenceInSeconds(earlierDate, laterDate);
+  const offsetCorrection = (getTimezoneOffset(earlierDate) - getTimezoneOffset(laterDate)) / 1000;
   const minutes = Math.round((seconds - offsetCorrection) / 60);
   
   let months;
@@ -402,18 +402,18 @@ function Tb2(date, baseDate, options) {
     return locale.formatDistance("aboutXHours", hours, formatOptions);
   } else if (minutes < minutesInAlmostTwoWeeks) {
     return locale.formatDistance("xDays", 1, formatOptions);
-  } else if (minutes < e01) {
+  } else if (minutes < SECONDS_IN_HALF_DAY) {
     const days = Math.round(minutes / minutesInDay);
     return locale.formatDistance("xDays", days, formatOptions);
-  } else if (minutes < e01 * 2) {
-    months = Math.round(minutes / e01);
+  } else if (minutes < SECONDS_IN_HALF_DAY * 2) {
+    months = Math.round(minutes / SECONDS_IN_HALF_DAY);
     return locale.formatDistance("aboutXMonths", months, formatOptions);
   }
   
-  months = wb2(earlierDate, laterDate);
+  months = differenceInMonthsWithOptions(earlierDate, laterDate);
   
   if (months < 12) {
-    const nearestMonth = Math.round(minutes / e01);
+    const nearestMonth = Math.round(minutes / SECONDS_IN_HALF_DAY);
     return locale.formatDistance("xMonths", nearestMonth, formatOptions);
   } else {
     const monthsRemainder = months % 12;
@@ -430,12 +430,12 @@ function Tb2(date, baseDate, options) {
 }
 
 // Format distance to now
-function Pb2(date, options) {
-  return Tb2(date, Xb2(date), options);
+function formatDistanceToNow(date, options) {
+  return formatDistance(date, constructNow(date), options);
 }
 
 // Session status color mapping
-function Oy6(status) {
+function getStatusColor(status) {
   switch (status) {
     case "pending":
     case "queued":
@@ -456,7 +456,7 @@ function Oy6(status) {
 }
 
 // Session status icon mapping
-function Ty6(status) {
+function getStatusIcon(status) {
   const icons = {
     circle: "○",
     circleDotted: "◌", 
@@ -489,9 +489,9 @@ function Ty6(status) {
 }
 
 // Session list item component
-const vj3 = React.memo(function SessionItem({ session, isSelected, index }) {
-  const color = Oy6(session.status);
-  const icon = Ty6(session.status);
+const SessionItem = React.memo(function SessionItem({ session, isSelected, index }) {
+  const color = getStatusColor(session.status);
+  const icon = getStatusIcon(session.status);
   
   return React.createElement("div", null,
     React.createElement("span", { 
@@ -516,13 +516,13 @@ const vj3 = React.memo(function SessionItem({ session, isSelected, index }) {
       " ",
       React.createElement("span", {
         style: { color: isSelected ? "dim" : "secondaryText" }
-      }, "- ", Pb2(session.updatedAt, { addSuffix: true }))
+      }, "- ", formatDistanceToNow(session.updatedAt, { addSuffix: true }))
     ])
   );
 });
 
 // Divider component
-function _y6({ 
+function Divider({ 
   width = "auto", 
   dividerChar, 
   dividerColor = "secondaryText", 
@@ -553,7 +553,7 @@ function _y6({
 }
 
 // Title divider component
-function jy6({
+function TitleDivider({
   title,
   width = "auto",
   padding = 0,
@@ -563,7 +563,7 @@ function jy6({
   dividerColor = "secondaryText",
   boxProps
 }) {
-  const divider = React.createElement(_y6, {
+  const divider = React.createElement(Divider, {
     dividerChar,
     dividerColor,
     boxProps
@@ -594,7 +594,7 @@ function jy6({
 }
 
 // Status display component
-function _b2({ sections, version, onClose }) {
+function StatusDisplay({ sections, version, onClose }) {
   // Handle keyboard events (mock implementation)
   const handleKeyboard = (key, keyData) => {
     if (keyData.return || keyData.escape) {
@@ -699,41 +699,41 @@ function getSessionId() {
 // Export all utilities
 export {
   // Core date functions
-  Xp as constructDate,
-  JW as normalizeDate,
-  Vp as constructDates,
-  Kp as compareAsc,
-  Xb2 as constructNow,
+  constructDate,
+  normalizeDate,
+  constructDates,
+  compareAsc,
+  constructNow,
   
   // Date calculations
-  Vb2 as differenceInMonths,
-  Eb2 as differenceInMilliseconds,
-  Nb2 as differenceInSeconds,
-  wb2 as differenceInMonthsWithOptions,
+  differenceInMonths,
+  differenceInMilliseconds,
+  differenceInSeconds,
+  differenceInMonthsWithOptions,
   
   // Date utilities
-  Hb2 as endOfDay,
-  zb2 as endOfMonth,
-  Ub2 as isLastDayOfMonth,
-  t9A as getTimezoneOffset,
+  endOfDay,
+  endOfMonth,
+  isLastDayOfMonth,
+  getTimezoneOffset,
   
   // Formatting
-  Tb2 as formatDistance,
-  Pb2 as formatDistanceToNow,
-  qb2 as formatDistanceLocale,
+  formatDistance,
+  formatDistanceToNow,
+  formatDistanceLocale,
   
   // UI Components
-  vj3 as SessionItem,
-  _y6 as Divider,
-  jy6 as TitleDivider,
-  _b2 as StatusDisplay,
+  SessionItem,
+  Divider,
+  TitleDivider,
+  StatusDisplay,
   
   // Status utilities
-  Oy6 as getStatusColor,
-  Ty6 as getStatusIcon,
+  getStatusColor,
+  getStatusIcon,
   
   // Constants
   CODE_REVIEW_TEMPLATE,
-  Ay6 as DISTANCE_FORMATS,
-  $b2 as LONG_FORMATS
+  DISTANCE_FORMATS,
+  LONG_FORMATS
 };
